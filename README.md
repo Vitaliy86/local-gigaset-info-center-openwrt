@@ -61,6 +61,37 @@ Now, try and go to `http://<yourserver>/info`. You should see something like thi
 
 Also, check `http://<yourserver>/info/menu.jsp` and `http://<yourserver>/info/request.do` which should show the same thing.
 
+## Alternative: Synology DiskStation setup
+
+If you are running a Synology DiskStation, you can use `.htaccess` instead of editing the global Apache config directly.
+
+1. Copy the repository files to a web-served directory, e.g. `/volume1/web/info/`.
+2. In **Web Station**, make sure PHP is enabled for the virtual host serving that directory.
+3. Copy `.htaccess.example` to `.htaccess` and fill in your values:
+
+```apache
+DirectoryIndex menu.php
+
+Require local
+Require ip 10.0.0.0/8
+
+SetEnv OPENWEATHERMAP_API_KEY <your-api-key-here>
+SetEnv CITY "Berlin"
+SetEnv LATITUDE 52.52437
+SetEnv LONGITUDE 13.41053
+
+Options +FollowSymLinks
+RewriteEngine On
+RewriteRule ^menu\.jsp$ menu.php [L]
+RewriteRule ^request\.do$ menu.php [L]
+```
+
+   Replace `10.0.0.0/8` with your local network range, and update the `SetEnv` lines with your city and coordinates.
+
+   The `Require local` and `Require ip` directives restrict access to your local network only.
+
+4. `.htaccess` is listed in `.gitignore` so your API key will not be accidentally committed to version control.
+
 ## Third step: Redirect your Gigaset phone to your own server
 
 This very much depends on what kind of router you have. It is easy for routers that provide their own (caching) DNS service like e.g. OpenWRT. Also, if you can manually set up a mapping of host-names to IP addresses, you might get lucky. The key part is to make the DNS server that is configured in your Gigaset base station (probably via DHCP) to resolve:
