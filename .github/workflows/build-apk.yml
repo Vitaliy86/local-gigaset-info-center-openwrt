@@ -39,9 +39,9 @@ jobs:
 
       - name: Build package
         run: |
-          # su не наследует cwd — передаём путь явно
-          su builder -c "cd '$GITHUB_WORKSPACE' && abuild -F -P /home/builder/packages"
-
+          # -d = skip dependency checking (deps are OpenWrt-specific, not in Alpine repos)
+          su builder -c "cd '$GITHUB_WORKSPACE' && abuild -F -d -P /home/builder/packages"
+      
       - name: Collect artifact
         id: pkg
         run: |
