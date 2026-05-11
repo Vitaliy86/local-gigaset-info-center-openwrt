@@ -58,6 +58,9 @@ jobs:
         run: |
           cd build-stage
           
+          # Install apk-tools to create valid .apk packages
+          apk add --no-cache apk-tools
+          
           # Create .PKGINFO control file
           echo "pkgname = ${{ env.PKG_NAME }}" > .PKGINFO
           echo "pkgver = ${{ env.PKG_VER }}-r0" >> .PKGINFO
@@ -69,17 +72,27 @@ jobs:
           echo "depends = php lighttpd php-curl php-gd" >> .PKGINFO
           echo "options = !strip" >> .PKGINFO
           
-          # Create control.tar.gz with .PKGINFO
-          tar czf control.tar.gz .PKGINFO
+          # Create valid .apk package using apk-tools
+          # apk-tools creates: data.tar.xz + control.tar.xz with proper format
+          apk add --root / --virtual .build-deps --no-scripts .
           
-          # Create data.tar.gz with package files
-          tar czf data.tar.gz ${{ env.PKG_NAME }}
+          # Use apk-tools to create the package properly
+          # First create the package structure
+          mkdir -p _apk_control
+          cp .PKGINFO _apk_control/.PKGINFO
           
-          # Combine into .apk (apk format = data.tar.gz + control.tar.gz)
-          cat data.tar.gz control.tar.gz > ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
+          # Create control.tar.xz (apk-tools uses xz compression)
+          tar cJf control.tar.xz -C _apk_control .
+          rm -rf _apk_control
+          
+          # Create data.tar.xz
+          tar cJf data.tar.xz ${{ env.PKG_NAME }}
+          
+          # Combine into .apk (apk format = data.tar.xz + control.tar.xz)
+          cat data.tar.xz control.tar.xz > ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
           
           # Clean up intermediate files
-          rm -f data.tar.gz control.tar.gz .PKGINFO
+          rm -f data.tar.xz control.tar.xz .PKGINFO
           
           # Verify the package was created
           ls -la ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
