@@ -1,0 +1,92 @@
+#!/bin/sh /etc/rc.common
+
+DESCRIPTION="Gigaset Info Center - Weather service for Gigaset IP handsets"
+PROG="/usr/sbin/lighttpd"
+PIDFILE="/var/run/gigaset-info-center.pid"
+LOG="/var/log/gigaset-info-center.log"
+CONFIG="/etc/lighttpd/gigaset-info-center.conf"
+
+start() {
+    mkdir -p /var/run
+    mkdir -p /var/log
+    
+    # Create lighttpd config if not exists
+    if [ ! -f "$CONFIG" ]; then
+        cat > "$CONFIG" << 'EOF'
+server.document-root = "/srv/gigaset-info-center/"
+server.bind = "127.0.0.1"
+server.port = 8081
+server.username = "lighttpd"
+server.groupname = "lighttpd"
+
+index-file.names = "index.php"
+
+mimetype.use-xattr = "enable"
+file-set_mimeinfo.doc-type = "php"
+
+# PHP settings
+fastcgi.server = (
+    ".php" => ((
+        "host" => "127.0.0.1",
+        "port" => "8080",
+        "check-interval" => 30,
+        "max-pool-size" => 5,
+    ))
+)
+
+# URL rewriting for .jsp and .do files -> .php
+url.rewrite-once = (
+    "^/info/menu\\.jsp$" => "/info/index.php",
+    "^/info/request\\.do$" => "/info/index.php",
+    "^/proxy/image\\.do$" => "/proxy.php",
+)
+
+# Access control - allow only local network
+access规则.allow = ("127.0.0.1", "192.168.1.0/24")
+EOF
+    fi
+    
+    # Set environment variables via config file
+    cat > /etc/gigaset-info-center/env.conf << ENVEOF
+# Gigaset Info Center Environment Configuration
+# Edit this file to configure your settings
+
+export OPENWEATHERMAP_API_KEY="YOUR_API_KEY_HERE"
+export CITY="YourCity"
+export LATITUDE=0.0
+export LONGITUDE=0.0
+export BASE_URL="http://info.gigaset.net/info"
+export ICON_BASE_URL="http://gigaset.net/img"
+export PROXY_BASE_URL="http://gigaset.net"
+export SHOW_ICONS="true"
+ENVEOF
+
+    # Start lighttpd
+    $PROG -f "$CONFIG" -D &
+    echo $! > "$PIDFILE"
+    echo "Gigaset Info Center started on port 8081"
+}
+
+stop() {
+    if [ -f "$PIDFILE" ]; then
+        kill $(cat "$PIDFILE") 2>/dev/null
+        rm -f "$PIDFILE"
+    fi
+    
+    # Also kill any remaining lighttpd processes for this config
+    pidof lighttpd | while read pid; do
+        ps -o command= $pid | grep -q "$CONFIG" && kill $pid 2>/dev/null
+    done
+    
+    echo "Gigaset Info Center stopped"
+}
+
+restart() {
+    stop
+    sleep 1
+    start
+}
+
+enabled() {
+    add_depend lighttpd php
+}

@@ -1,2 +1,12 @@
-.htaccess
-config.mk
+# Build artifacts
+dist/
+build-stage/
+test-extract/
+*.apk
+
+# Environment config (contains API keys)
+.env
+/etc/gigaset-info-center.conf
+
+# APKBUILD is tracked but template is used for builds
+scripts/APKBUILD.template

@@ -122,6 +122,151 @@ This very much depends on what kind of router you have. It is easy for routers t
 In OpenWRT, you can set this up at `https://<your-router>/cgi-bin/luci/admin/network/dhcp` in the _Hostnames_ tab.
 
 
+## Installation on OpenWRT 25.12.3+
+
+This project can be installed as an Alpine Linux `.apk` package on OpenWRT 25.12.3+.
+
+### Method 1: Install from GitHub Release (recommended)
+
+```bash
+# Download the .apk package to your OpenWRT device
+wget -O /root/packages/gigaset-info-center-1.7-r0.apk https://github.com/Vitaliy86/local-gigaset-info-center-openwrt/releases/download/v1.7/gigaset-info-center-1.7-r0.apk
+
+# Install the package (skip signature check for locally built packages)
+apk add --no-signature /root/packages/gigaset-info-center-1.7-r0.apk
+
+# Enable and start the service
+rc-update add gigaset-info-center default
+/etc/init.d/gigaset-info-center start
+```
+
+### Method 2: Local Build
+
+Build the package locally on your development machine:
+
+```bash
+# Clone the repository
+git clone https://github.com/Vitaliy86/local-gigaset-info-center-openwrt.git
+cd local-gigaset-info-center-openwrt
+
+# Build the .apk package
+make build
+# or: bash scripts/build-package.sh 1.7
+
+# Install on OpenWRT device (requires SSH access)
+make install HOST="root@YOUR_OPENWRT_IP" DEST_DIR="/root/packages"
+```
+
+### Method 3: GitHub Actions CI/CD
+
+Enable the GitHub Actions workflow by pushing a tag or triggering `workflow_dispatch`:
+
+```bash
+git tag v1.7
+git push origin v1.7
+```
+
+The workflow will automatically build and upload the `.apk` package as a release artifact.
+
+### Configure the service
+
+After installation, edit the environment configuration file:
+
+```bash
+vi /etc/gigaset-info-center.env.example
+# or copy to actual config:
+cp /etc/gigaset-info-center.env.example /etc/gigaset-info-center.conf
+```
+
+Edit the following values:
+
+| Variable | Description | Example |
+|---|---|---|
+| `OPENWEATHERMAP_API_KEY` | Your OpenWeatherMap API key | `a1b2c3d4e5f6...` |
+| `CITY` | City name for display | `"Berlin"` |
+| `LATITUDE` | Latitude coordinate | `52.52437` |
+| `LONGITUDE` | Longitude coordinate | `13.41053` |
+| `SHOW_ICONS` | Show weather icons (true/false) | `"true"` |
+
+### Configure lighttpd
+
+Add the gigaset-info-center config to your lighttpd configuration:
+
+```bash
+# Include the package config in /etc/lighttpd/lighttpd.conf
+echo 'include "/etc/gigaset-info-center.conf"' >> /etc/lighttpd/lighttpd.conf
+
+# Restart lighttpd
+/etc/init.d/lighttpd restart
+```
+
+### Configure DNS redirect for Gigaset phone
+
+In OpenWRT LuCI, set up DNS redirect:
+
+1. Go to **Network > DHCP > DNS** tab
+2. Add hostname alias: `info.gigaset.net` -> your router IP
+
+Or via CLI:
+
+```bash
+# Add static DNS entry in /etc/config/dhcp
+uci add dhcp static_host
+uci set dhcp.static_host.ip="YOUR_ROUTER_IP"
+uci set dhcp.static_host.name="info.gigaset.net"
+uci commit dhcp
+/etc/init.d.network restart
+```
+
+### Verify installation
+
+Check if the service is running:
+
+```bash
+# Check service status
+/etc/init.d/gigaset-info-center status
+
+# Test locally (requires curl)
+curl http://127.0.0.1:8081/
+```
+
+Expected output should show weather data in XHTML-GP format for your Gigaset phone.
+
+## Build System
+
+### File Structure
+
+```
+├── APKBUILD              # Alpine Linux package build definition
+├── Makefile              # Build automation (make build/install/clean)
+├── scripts/
+│   ├── build-package.sh  # Local build script
+│   └── APKBUILD.template # Template for GitHub Actions
+├── etc/
+│   ├── lighttpd/         # Lighttpd configuration
+│   │   └── gigaset-info-center.conf
+│   └── gigaset-env.example # Environment config template
+├── .github/workflows/    # GitHub Actions CI/CD
+│   └── build-apk.yml     # Build workflow definition
+```
+
+### Makefile Commands
+
+| Command | Description |
+|---|---|
+| `make build` | Build the .apk package |
+| `make install` | Install on OpenWRT device via SSH |
+| `make test` | Verify package structure |
+| `make clean` | Clean build artifacts |
+
+### GitHub Actions Workflow
+
+The `.github/workflows/build-apk.yml` workflow:
+- Builds `.apk` package on push to main/master or tag creation
+- Uploads artifact for manual download
+- Creates GitHub Release when tagging (`v*`)
+- Tests package structure integrity
+
 ## References
 
 I used information from

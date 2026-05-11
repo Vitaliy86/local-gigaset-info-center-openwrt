@@ -1,0 +1,108 @@
+name: Build Alpine/OpenWRT Package (.apk)
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  PKG_NAME: gigaset-info-center
+  PKG_VER: 1.7
+
+jobs:
+  build:
+    name: Build .apk Package
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Create staging directory
+        run: |
+          mkdir -p "build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/icons"
+          mkdir -p "build-stage/${{ env.PKG_NAME }}/etc/lighttpd"
+          mkdir -p "build-stage/${{ env.PKG_NAME }}/etc/init.d"
+          mkdir -p "build-stage/${{ env.PKG_NAME }}/usr/share/doc/${{ env.PKG_NAME }}"
+
+      - name: Copy web application files
+        run: |
+          cp index.php build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/
+          cp weather.php build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/
+          cp proxy.php build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/
+
+      - name: Copy icons
+        run: |
+          for icon in icons/*.png; do
+            cp "$icon" "build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/icons/"
+          done
+
+      - name: Copy configuration files
+        run: |
+          cp etc/lighttpd/${{ env.PKG_NAME }}.conf build-stage/${{ env.PKG_NAME }}/etc/lighttpd/
+          cp etc/gigaset-env.example build-stage/${{ env.PKG_NAME }}/etc/
+
+      - name: Copy init script and documentation
+        run: |
+          cp ${{ env.PKG_NAME }}.init "build-stage/${{ env.PKG_NAME }}/etc/init.d/${{ env.PKG_NAME }}"
+          chmod 755 "build-stage/${{ env.PKG_NAME }}/etc/init.d/${{ env.PKG_NAME }}"
+          cp LICENSE README.md "build-stage/${{ env.PKG_NAME }}/usr/share/doc/${{ env.PKG_NAME }}/"
+
+      - name: Copy APKBUILD template
+        run: |
+          cp scripts/APKBUILD.template build-stage/APKBUILD
+          sed -i "s/PKG_NAME_VAR/${{ env.PKG_NAME }}/g" build-stage/APKBUILD
+
+      - name: Create .apk package
+        id: create-package
+        run: |
+          cd build-stage
+          tar cf ../${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk ${{ env.PKG_NAME }}
+          echo "package_name=${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PKG_NAME }}-apk
+          path: ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
+          retention-days: 30
+      
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-openwrt:
+    name: Test Package Structure
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PKG_NAME }}-apk
+      
+      - name: Verify package structure
+        run: |
+          mkdir test-extract
+          tar xf ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk -C test-extract
+          
+          echo "Package contents:"
+          find test-extract -type f
+          
+          # Check essential files exist
+          test -f test-extract/gigaset-info-center/index.php || exit 1
+          test -f test-extract/gigaset-info-center/weather.php || exit 1
+          test -f test-extract/gigaset-info-center/proxy.php || exit 1
+          test -d test-extract/gigaset-info-center/icons || exit 1
+          
+          echo "Package structure verified successfully!"
