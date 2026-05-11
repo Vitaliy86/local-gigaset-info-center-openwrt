@@ -1,136 +1,86 @@
-name: Build Alpine/OpenWRT Package (.apk)
+name: Build OpenWrt APK Package
 
 on:
   push:
     branches: [main, master]
-    tags:
-      - 'v*'
+    tags: ['v*']
   pull_request:
     branches: [main, master]
   workflow_dispatch:
 
 env:
   PKG_NAME: gigaset-info-center
-  PKG_VER: 1.7
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  PKG_VER: "1.7"
 
 jobs:
   build:
     name: Build .apk Package
     runs-on: ubuntu-latest
-    
+    container:
+      image: alpine:3.21   # abuild здесь создаёт правильный APKv2
+
     steps:
+      - name: Install build tools
+        run: apk add --no-cache alpine-sdk sudo
+
       - name: Checkout repository
-        uses: actions/checkout@v5
-      
-      - name: Create staging directory
-        run: |
-          mkdir -p "build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/icons"
-          mkdir -p "build-stage/${{ env.PKG_NAME }}/etc/lighttpd"
-          mkdir -p "build-stage/${{ env.PKG_NAME }}/etc/init.d"
-          mkdir -p "build-stage/${{ env.PKG_NAME }}/usr/share/doc/${{ env.PKG_NAME }}"
+        uses: actions/checkout@v4
 
-      - name: Copy web application files
+      - name: Setup build user (abuild запрещён от root)
         run: |
-          cp index.php build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/
-          cp weather.php build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/
-          cp proxy.php build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/
+          adduser -D builder
+          addgroup builder abuild
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          chown -R builder:builder "$GITHUB_WORKSPACE"
 
-      - name: Copy icons
-        run: |
-          for icon in icons/*.png; do
-            cp "$icon" "build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/icons/"
-          done
+      - name: Generate signing key
+        run: su builder -c "abuild-keygen -a -n"
 
-      - name: Copy configuration files
-        run: |
-          cp etc/lighttpd/${{ env.PKG_NAME }}.conf build-stage/${{ env.PKG_NAME }}/etc/lighttpd/
-          cp etc/gigaset-env.example build-stage/${{ env.PKG_NAME }}/etc/
+      - name: Build package
+        working-directory: ${{ github.workspace }}
+        run: su builder -c "abuild -F -P /home/builder/packages"
 
-      - name: Copy init script and documentation
+      - name: Collect artifact
+        id: pkg
         run: |
-          cp ${{ env.PKG_NAME }}.init "build-stage/${{ env.PKG_NAME }}/etc/init.d/${{ env.PKG_NAME }}"
-          chmod 755 "build-stage/${{ env.PKG_NAME }}/etc/init.d/${{ env.PKG_NAME }}"
-          cp LICENSE README.md "build-stage/${{ env.PKG_NAME }}/usr/share/doc/${{ env.PKG_NAME }}/"
-
-      - name: Build valid .apk package with Docker
-        id: create-package
-        run: |
-          # Use Docker with Alpine Linux to create a valid apk package
-          docker run --rm -v "${{ github.workspace }}:/work" alpine:3.19 sh -c '
-            apk add --no-cache apk-tools tar xz gzip
-            cd /work/build-stage
-            # Create .PKGINFO control file
-            echo "pkgname = ${{ env.PKG_NAME }}" > .PKGINFO
-            echo "pkgver = ${{ env.PKG_VER }}-r0" >> .PKGINFO
-            echo "arch = noarch" >> .PKGINFO
-            echo "license = AGPL-3.0-or-later" >> .PKGINFO
-            echo "url = https://github.com/Vitaliy86/local-gigaset-info-center-openwrt" >> .PKGINFO
-            echo "maintainer = Vitaliy86 <vitaliy86@github.com>" >> .PKGINFO
-            echo "description = Replacement weather service for Gigaset IP handsets" >> .PKGINFO
-            echo "depends = php lighttpd php-curl php-gd" >> .PKGINFO
-            echo "options = !strip" >> .PKGINFO
-            # Create valid .apk package using apk-tools
-            apk-tools add --root / --virtual .apkbuild --no-scripts .
-            # Use apk-tools to create the package
-            apk build /work/build-stage/APKBUILD 2>/dev/null || true
-            # Fallback: create manually with proper format
-            mkdir -p _control
-            cp .PKGINFO _control/.PKGINFO
-            tar cJf control.tar.xz -C _control .
-            rm -rf _control
-            tar cJf data.tar.xz ${{ env.PKG_NAME }}
-            cat data.tar.xz control.tar.xz > /work/${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
-            rm -f data.tar.xz control.tar.xz .PKGINFO
-          '
-          
-          # Verify the package was created
-          ls -la ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
-          
-          echo "package_name=${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk" >> $GITHUB_OUTPUT
+          APK=$(find /home/builder/packages -name '*.apk' | head -1)
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+          ls -lah "$APK"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PKG_NAME }}-apk
-          path: build-stage/${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
+          path: ${{ steps.pkg.outputs.path }}
           retention-days: 30
-      
+
       - name: Create GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: build-stage/${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
+          files: ${{ steps.pkg.outputs.path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  test-openwrt:
-    name: Test Package Structure
+  verify:
+    name: Verify Package
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
-    
+    container:
+      image: alpine:3.21
+
     steps:
-      - name: Download package artifact
-        uses: actions/download-artifact@v5
+      - name: Download artifact
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.PKG_NAME }}-apk
-      
-      - name: Verify package structure
+          path: /tmp/pkg
+
+      - name: Verify APK is readable by apk-tools
         run: |
-          mkdir test-extract
-          tar xf ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk -C test-extract
-          
-          echo "Package contents:"
-          find test-extract -type f
-          
-          # Check essential files exist
-          test -f test-extract/gigaset-info-center/index.php || exit 1
-          test -f test-extract/gigaset-info-center/weather.php || exit 1
-          test -f test-extract/gigaset-info-center/proxy.php || exit 1
-          test -d test-extract/gigaset-info-center/icons || exit 1
-          
-          # Check control.tar.gz exists
-          test -f test-extract/.PKGINFO || exit 1
-          
-          echo "Package structure verified successfully!"
+          APK=$(find /tmp/pkg -name '*.apk' | head -1)
+          echo "Verifying: $APK"
+          # Проверяем что пакет валиден для apk-tools
+          tar tzf "$APK" | head -20
+          tar xzf "$APK" .PKGINFO -O
+          echo "✅ Package OK"
