@@ -35,8 +35,12 @@ jobs:
           chown -R builder:builder "$GITHUB_WORKSPACE"
 
       - name: Generate signing key
-        run: su builder -c "abuild-keygen -a -n"
-
+        
+        run: |
+          su builder -c "abuild-keygen -n"
+          # Устанавливаем публичный ключ как root — apk начнёт доверять пакету
+          cp /home/builder/.abuild/*.pub /etc/apk/keys/
+     
       - name: Build package
         run: |
           # -d = skip dependency checking (deps are OpenWrt-specific, not in Alpine repos)
