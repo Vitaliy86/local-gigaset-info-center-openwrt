@@ -52,10 +52,11 @@ jobs:
           chmod 755 "build-stage/${{ env.PKG_NAME }}/etc/init.d/${{ env.PKG_NAME }}"
           cp LICENSE README.md "build-stage/${{ env.PKG_NAME }}/usr/share/doc/${{ env.PKG_NAME }}/"
 
-      - name: Copy APKBUILD template
+      - name: Copy APKBUILD
         run: |
-          cp scripts/APKBUILD.template build-stage/APKBUILD
-          sed -i "s/PKG_NAME_VAR/${{ env.PKG_NAME }}/g" build-stage/APKBUILD
+          cp APKBUILD build-stage/APKBUILD
+          sed -i "s/_pkgver=\"[^\"]*\"/_pkgver=\"${{ env.PKG_VER }}\"/g" build-stage/APKBUILD
+          sed -i "s/pkgver=\"\${_pkgver}-r0\"/pkgver=\"\${_pkgver}-r0\"/g" build-stage/APKBUILD
 
       - name: Create .apk package
         id: create-package
