@@ -58,8 +58,8 @@ jobs:
         run: |
           cd build-stage
           
-          # Install apk-tools to create valid .apk packages
-          apk add --no-cache apk-tools
+          # Install xz-utils for xz compression support
+          sudo apt-get update && sudo apt-get install -y xz-utils
           
           # Create .PKGINFO control file
           echo "pkgname = ${{ env.PKG_NAME }}" > .PKGINFO
@@ -72,12 +72,7 @@ jobs:
           echo "depends = php lighttpd php-curl php-gd" >> .PKGINFO
           echo "options = !strip" >> .PKGINFO
           
-          # Create valid .apk package using apk-tools
-          # apk-tools creates: data.tar.xz + control.tar.xz with proper format
-          apk add --root / --virtual .build-deps --no-scripts .
-          
-          # Use apk-tools to create the package properly
-          # First create the package structure
+          # Create the package structure
           mkdir -p _apk_control
           cp .PKGINFO _apk_control/.PKGINFO
           
