@@ -1,43 +1,34 @@
-# This file is the build script for Alpine Linux packages.
-# It follows the Alpine Packager guidelines.
-# For OpenWRT 25.12.3+, this will produce a valid .apk package.
-
+# Maintainer: Vitaliy86 <vitaliy86@github.com>
 pkgname="gigaset-info-center"
 pkgver="1.7"
 pkgrel=0
-epoch=0
 arch="noarch"
 license="AGPL-3.0-or-later"
 url="https://github.com/Vitaliy86/local-gigaset-info-center-openwrt"
 maintainer="Vitaliy86 <vitaliy86@github.com>"
 description="Replacement weather service for Gigaset IP handsets"
-depends="php lighttpd php-curl php-gd"
+depends="php8 lighttpd php8-mod-curl php8-mod-gd lighttpd-mod-fastcgi"
+options="!strip !check"
+source=""
 
-build() {
-    return 0
-}
+build() { return 0; }
 
 package() {
-    local dest="$pkgdir"
-    
-    # Install web application files to /srv/gigaset-info-center/
-    mkdir -p "$dest/srv/gigaset-info-center/icons"
-    cp index.php "$dest/srv/gigaset-info-center/"
-    cp weather.php "$dest/srv/gigaset-info-center/"
-    cp proxy.php "$dest/srv/gigaset-info-center/"
-    cp icons/*.png "$dest/srv/gigaset-info-center/icons/"
-    
-    # Install configuration files to /etc/
-    mkdir -p "$dest/etc/lighttpd"
-    cp etc/lighttpd/gigaset-info-center.conf "$dest/etc/lighttpd/"
-    cp etc/gigaset-env.example "$dest/etc/gigaset-env.example"
-    
-    # Install init script to /etc/init.d/
-    mkdir -p "$dest/etc/init.d"
-    cp gigaset-info-center.init "$dest/etc/init.d/gigaset-info-center"
-    chmod 0755 "$dest/etc/init.d/gigaset-info-center"
-    
-    # Install documentation
-    mkdir -p "$dest/usr/share/doc/$pkgname"
-    cp LICENSE README.md "$dest/usr/share/doc/$pkgname/"
+    mkdir -p "$pkgdir/srv/gigaset-info-center/icons"
+    cp "$startdir/index.php"   "$pkgdir/srv/gigaset-info-center/"
+    cp "$startdir/weather.php" "$pkgdir/srv/gigaset-info-center/"
+    cp "$startdir/proxy.php"   "$pkgdir/srv/gigaset-info-center/"
+    cp "$startdir"/icons/*.png "$pkgdir/srv/gigaset-info-center/icons/"
+
+    mkdir -p "$pkgdir/etc/lighttpd"
+    cp "$startdir/etc/lighttpd/gigaset-info-center.conf" "$pkgdir/etc/lighttpd/"
+    cp "$startdir/etc/gigaset-env.example" "$pkgdir/etc/"
+
+    mkdir -p "$pkgdir/etc/init.d"
+    install -m 0755 "$startdir/gigaset-info-center.init" \
+        "$pkgdir/etc/init.d/gigaset-info-center"
+
+    mkdir -p "$pkgdir/usr/share/doc/$pkgname"
+    cp "$startdir/LICENSE" "$startdir/README.md" \
+        "$pkgdir/usr/share/doc/$pkgname/"
 }
