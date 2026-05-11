@@ -1,14 +1,35 @@
 #!/bin/sh /etc/rc.common
+# Copyright (C) 2024 Vitaliy86 <vitaliy86@github.com>
 
 DESCRIPTION="Gigaset Info Center - Weather service for Gigaset IP handsets"
+START=80
+STOP=20
+USE_PROCD=1
 PROG="/usr/sbin/lighttpd"
 PIDFILE="/var/run/gigaset-info-center.pid"
 LOG="/var/log/gigaset-info-center.log"
 CONFIG="/etc/lighttpd/gigaset-info-center.conf"
+ENVFILE="/etc/gigaset-env"
 
-start() {
-    mkdir -p /var/run
-    mkdir -p /var/log
+start_service() {
+    mkdir -p /var/run /var/log /etc/gigaset-info-center
+    
+    # Create environment config if not exists
+    if [ ! -f "$ENVFILE" ]; then
+        cat > "$ENVFILE" << 'ENVEOF'
+# Gigaset Info Center Environment Configuration
+# Edit this file to configure your settings
+
+OPENWEATHERMAP_API_KEY="YOUR_API_KEY_HERE"
+CITY="YourCity"
+LATITUDE=0.0
+LONGITUDE=0.0
+BASE_URL="http://info.gigaset.net/info"
+ICON_BASE_URL="http://gigaset.net/img"
+PROXY_BASE_URL="http://gigaset.net"
+SHOW_ICONS="true"
+ENVEOF
+    fi
     
     # Create lighttpd config if not exists
     if [ ! -f "$CONFIG" ]; then
@@ -19,10 +40,9 @@ server.port = 8081
 server.username = "lighttpd"
 server.groupname = "lighttpd"
 
-index-file.names = "index.php"
+index-file.names = ( "index.php" )
 
 mimetype.use-xattr = "enable"
-file-set_mimeinfo.doc-type = "php"
 
 # PHP settings
 fastcgi.server = (
@@ -30,7 +50,7 @@ fastcgi.server = (
         "host" => "127.0.0.1",
         "port" => "8080",
         "check-interval" => 30,
-        "max-pool-size" => 5,
+        "max-pools" => 5,
     ))
 )
 
@@ -42,32 +62,26 @@ url.rewrite-once = (
 )
 
 # Access control - allow only local network
-access规则.allow = ("127.0.0.1", "192.168.1.0/24")
+accesslog.filename = "/var/log/gigaset-info-center-access.log"
+errorlog.filename = "/var/log/gigaset-info-center-error.log"
 EOF
     fi
     
-    # Set environment variables via config file
-    cat > /etc/gigaset-info-center/env.conf << ENVEOF
-# Gigaset Info Center Environment Configuration
-# Edit this file to configure your settings
-
-export OPENWEATHERMAP_API_KEY="YOUR_API_KEY_HERE"
-export CITY="YourCity"
-export LATITUDE=0.0
-export LONGITUDE=0.0
-export BASE_URL="http://info.gigaset.net/info"
-export ICON_BASE_URL="http://gigaset.net/img"
-export PROXY_BASE_URL="http://gigaset.net"
-export SHOW_ICONS="true"
-ENVEOF
-
-    # Start lighttpd
-    $PROG -f "$CONFIG" -D &
-    echo $! > "$PIDFILE"
-    echo "Gigaset Info Center started on port 8081"
+    procd_add_service gigaset-info-center "$PROG"
+    procd_add_service_arg -f
+    procd_add_service_arg -f
+    procd_add_service_arg "$CONFIG"
+    procd_add_service_arg -D
+    procd_set_param pidfile "$PIDFILE"
+    procd_set_param respawn 3600 5 5
+    procd_set_param logs "/var/log/gigaset-info-center-error.log"
+    procd_set_param env_file "$ENVFILE"
+    procd_add_dependencies("net")
+    procd_add_dependencies("uci")
+    procd_start_service
 }
 
-stop() {
+stop_service() {
     if [ -f "$PIDFILE" ]; then
         kill $(cat "$PIDFILE") 2>/dev/null
         rm -f "$PIDFILE"
@@ -79,14 +93,4 @@ stop() {
     done
     
     echo "Gigaset Info Center stopped"
-}
-
-restart() {
-    stop
-    sleep 1
-    start
-}
-
-enabled() {
-    add_depend lighttpd php
 }
