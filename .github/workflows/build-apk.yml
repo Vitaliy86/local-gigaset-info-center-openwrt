@@ -90,14 +90,14 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: ${{ env.PKG_NAME }}-apk
-          path: ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
+          path: build-stage/${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
           retention-days: 30
       
       - name: Create GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
+          files: build-stage/${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
