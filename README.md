@@ -122,51 +122,48 @@ This very much depends on what kind of router you have. It is easy for routers t
 In OpenWRT, you can set this up at `https://<your-router>/cgi-bin/luci/admin/network/dhcp` in the _Hostnames_ tab.
 
 
-## Installation on OpenWRT 25.12.3+
+## Building for OpenWRT
 
-This project can be installed as an Alpine Linux `.apk` package on OpenWRT 25.12.3+.
+### Build in OpenWRT SDK
 
-### Method 1: Install from GitHub Release (recommended)
+Clone the OpenWRT SDK first:
 
 ```bash
-# Download the .apk package to your OpenWRT device
-wget -O /root/packages/gigaset-info-center-1.7-r0.apk https://github.com/Vitaliy86/local-gigaset-info-center-openwrt/releases/download/v1.7/gigaset-info-center-1.7-r0.apk
+# Download OpenWRT SDK for your target architecture
+# Example for x86_64:
+wget https://downloads.openwrt.org/releases/23.05.3/targets/x86/64/openwrt-sdk-23.05.3-x86-64_gcc-12.3.0_musl_x86_64.tar.xz
+tar xf openwrt-sdk-23.05.3-x86_64_gcc-12.3.0_musl_x86_64.tar.xz
+cd openwrt-sdk-23.05.3-x86_64_gcc-12.3.0_musl_x86_64
 
-# Install the package (skip signature check for locally built packages)
-apk add --no-signature /root/packages/gigaset-info-center-1.7-r0.apk
+# Clone this repo into packages directory
+git clone https://github.com/Vitaliy86/local-gigaset-info-center-openwrt.git package/gigaset-info-center
+```
+
+Then build the package:
+
+```bash
+# Make menuconfig and add gigaset-info-center under Network -> Other packages
+
+# Build the package
+make package/gigaset-info-center/compile V=s
+
+# The .ipk package will be in:
+# bin/packages/<architecture>/base/
+```
+
+### Install on OpenWRT device
+
+```bash
+# Upload the .ipk package to your OpenWRT device
+scp bin/packages/*/base/gigaset-info-center*.ipk root@YOUR_OPENWRT_IP:/tmp/
+
+# Install the package
+opkg install /tmp/gigaset-info-center*.ipk
 
 # Enable and start the service
 rc-update add gigaset-info-center default
 /etc/init.d/gigaset-info-center start
 ```
-
-### Method 2: Local Build
-
-Build the package locally on your development machine:
-
-```bash
-# Clone the repository
-git clone https://github.com/Vitaliy86/local-gigaset-info-center-openwrt.git
-cd local-gigaset-info-center-openwrt
-
-# Build the .apk package
-make build
-# or: bash scripts/build-package.sh 1.7
-
-# Install on OpenWRT device (requires SSH access)
-make install HOST="root@YOUR_OPENWRT_IP" DEST_DIR="/root/packages"
-```
-
-### Method 3: GitHub Actions CI/CD
-
-Enable the GitHub Actions workflow by pushing a tag or triggering `workflow_dispatch`:
-
-```bash
-git tag v1.7
-git push origin v1.7
-```
-
-The workflow will automatically build and upload the `.apk` package as a release artifact.
 
 ### Configure the service
 
@@ -237,31 +234,45 @@ Expected output should show weather data in XHTML-GP format for your Gigaset pho
 ### File Structure
 
 ```
-├── APKBUILD              # Alpine Linux package build definition
-├── Makefile              # Build automation (make build/install/clean)
-├── scripts/
-│   ├── build-package.sh  # Local build script
-│   └── APKBUILD.template # Template for GitHub Actions
+├── Makefile              # OpenWrt package build definition
+├── gigaset-info-center.init # OpenWrt init script
 ├── etc/
 │   ├── lighttpd/         # Lighttpd configuration
 │   │   └── gigaset-info-center.conf
 │   └── gigaset-env.example # Environment config template
+├── icons/                # Weather icons
 ├── .github/workflows/    # GitHub Actions CI/CD
 │   └── build-apk.yml     # Build workflow definition
 ```
 
-### Makefile Commands
+### OpenWrt Package Makefile
 
-| Command | Description |
+The [`Makefile`](Makefile) follows OpenWrt package build system conventions:
+
+```bash
+# Build the package (run from OpenWrt SDK root)
+make package/gigaset-info-center/compile V=s
+
+# Clean build artifacts
+make package/gigaset-info-center/clean
+
+# Configure in menuconfig
+make menuconfig
+# Navigate to: Network -> Other packages -> gigaset-info-center
+```
+
+### Package Variables
+
+| Variable | Description |
 |---|---|
-| `make build` | Build the .apk package |
-| `make install` | Install on OpenWRT device via SSH |
-| `make test` | Verify package structure |
-| `make clean` | Clean build artifacts |
+| `PKG_NAME` | Package name: `gigaset-info-center` |
+| `PKG_VERSION` | Package version: `1.7` |
+| `PKG_RELEASE` | Package release number |
+| `DEPENDS` | Runtime dependencies |
 
 ### GitHub Actions Workflow
 
-The `.github/workflows/build-apk.yml` workflow:
+The [`.github/workflows/build-apk.yml`](.github/workflows/build-apk.yml) workflow:
 - Builds `.apk` package on push to main/master or tag creation
 - Uploads artifact for manual download
 - Creates GitHub Release when tagging (`v*`)
