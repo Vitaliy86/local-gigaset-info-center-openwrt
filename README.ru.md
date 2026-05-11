@@ -150,14 +150,16 @@ make package/gigaset-info-center/compile V=s
 # bin/packages/<architecture>/base/
 ```
 
-### Установка на устройство OpenWRT
+### Установка на устройство OpenWRT 25.12.3+
+
+OpenWRT 25.12.3+ использует пакетный менеджер `apk` Alpine Linux (opkg устарел).
 
 ```bash
-# Загрузите пакет .ipk на ваше устройство OpenWRT
-scp bin/packages/*/base/gigaset-info-center*.ipk root@ВАШ_IP_OPENWRT:/tmp/
+# Скачайте пакет .apk на ваше устройство OpenWRT
+wget -O /tmp/gigaset-info-center-1.7-r0.apk https://github.com/Vitaliy86/local-gigaset-info-center-openwrt/releases/download/v1.7/gigaset-info-center-1.7-r0.apk
 
-# Установите пакет
-opkg install /tmp/gigaset-info-center*.ipk
+# Установите пакет (пропуск проверки подписи для локально собранных пакетов)
+apk add --no-signature /tmp/gigaset-info-center-1.7-r0.apk
 
 # Включите и запустите сервис
 rc-update add gigaset-info-center default
