@@ -53,29 +53,13 @@ jobs:
           chmod 755 "build-stage/${{ env.PKG_NAME }}/etc/init.d/${{ env.PKG_NAME }}"
           cp LICENSE README.md "build-stage/${{ env.PKG_NAME }}/usr/share/doc/${{ env.PKG_NAME }}/"
 
-      - name: Build valid .apk package with Docker
+      - name: Build valid .apk package
         id: create-package
         run: |
-          # Use Docker to build a valid apk package with proper signatures
-          docker run --rm -v "${{ github.workspace }}:/work" -w /work alpine:3.19 sh -c '
-            apk add --no-cache tar gzip
-            mkdir -p /work/build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/icons
-            mkdir -p /work/build-stage/${{ env.PKG_NAME }}/etc/lighttpd
-            mkdir -p /work/build-stage/${{ env.PKG_NAME }}/etc/init.d
-            mkdir -p /work/build-stage/${{ env.PKG_NAME }}/usr/share/doc/${{ env.PKG_NAME }}
-            cp /work/index.php /work/build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/
-            cp /work/weather.php /work/build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/
-            cp /work/proxy.php /work/build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/
-            cp /work/icons/*.png /work/build-stage/${{ env.PKG_NAME }}/srv/gigaset-info-center/icons/
-            cp /work/etc/lighttpd/${{ env.PKG_NAME }}.conf /work/build-stage/${{ env.PKG_NAME }}/etc/lighttpd/
-            cp /work/etc/gigaset-env.example /work/build-stage/${{ env.PKG_NAME }}/etc/
-            cp /work/${{ env.PKG_NAME }}.init /work/build-stage/${{ env.PKG_NAME }}/etc/init.d/${{ env.PKG_NAME }}
-            chmod 755 /work/build-stage/${{ env.PKG_NAME }}/etc/init.d/${{ env.PKG_NAME }}
-            cp /work/LICENSE /work/build-stage/${{ env.PKG_NAME }}/usr/share/doc/${{ env.PKG_NAME }}/
-            cp /work/README.md /work/build-stage/${{ env.PKG_NAME }}/usr/share/doc/${{ env.PKG_NAME }}/
-            cd /work/build-stage
-            # Create .PKGINFO
-            cat > .PKGINFO <<PKGINFO
+          cd build-stage
+          
+          # Create .PKGINFO control file
+          cat > .PKGINFO <<PKGINFO
 pkgname = ${{ env.PKG_NAME }}
 pkgver = ${{ env.PKG_VER }}-r0
 arch = noarch
@@ -86,15 +70,21 @@ description = Replacement weather service for Gigaset IP handsets
 depends = php lighttpd php-curl php-gd
 options = !strip
 PKGINFO
-            # Create control.tar.gz
-            tar czf control.tar.gz .PKGINFO
-            # Create data.tar.gz
-            tar czf data.tar.gz ${{ env.PKG_NAME }}
-            # Combine into .apk (apk = data.tar.gz + control.tar.gz)
-            cat data.tar.gz control.tar.gz > /work/${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
-            # Clean up intermediate files
-            rm -f data.tar.gz control.tar.gz .PKGINFO
-          '
+          
+          # Create control.tar.gz with .PKGINFO
+          tar czf control.tar.gz .PKGINFO
+          
+          # Create data.tar.gz with package files
+          tar czf data.tar.gz ${{ env.PKG_NAME }}
+          
+          # Combine into .apk (apk format = data.tar.gz + control.tar.gz)
+          cat data.tar.gz control.tar.gz > ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
+          
+          # Clean up intermediate files
+          rm -f data.tar.gz control.tar.gz .PKGINFO
+          
+          # Verify the package was created
+          ls -la ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
           
           echo "package_name=${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk" >> $GITHUB_OUTPUT
 
