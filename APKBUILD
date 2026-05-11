@@ -21,7 +21,8 @@ package() {
     cp "$startdir"/icons/*.png "$pkgdir/srv/gigaset-info-center/icons/"
 
     mkdir -p "$pkgdir/etc/lighttpd"
-    cp "$startdir/etc/lighttpd/gigaset-info-center.conf" "$pkgdir/etc/lighttpd/"
+    cp "$startdir/etc/lighttpd/gigaset-info-center.conf" \
+       "$pkgdir/etc/lighttpd/"
     cp "$startdir/etc/gigaset-env.example" "$pkgdir/etc/"
 
     mkdir -p "$pkgdir/etc/init.d"
