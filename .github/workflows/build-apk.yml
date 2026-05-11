@@ -12,6 +12,7 @@ on:
 env:
   PKG_NAME: gigaset-info-center
   PKG_VER: 1.7
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   build:
