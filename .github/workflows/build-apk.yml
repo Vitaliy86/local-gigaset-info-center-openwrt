@@ -17,7 +17,7 @@ jobs:
     name: Build .apk Package
     runs-on: ubuntu-latest
     container:
-      image: alpine:3.21   # abuild здесь создаёт правильный APKv2
+      image: alpine:3.21
 
     steps:
       - name: Install build tools
@@ -26,19 +26,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup build user (abuild запрещён от root)
+      - name: Setup build user
         run: |
           adduser -D builder
           addgroup builder abuild
           echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          # Даём builder доступ к исходникам
           chown -R builder:builder "$GITHUB_WORKSPACE"
 
       - name: Generate signing key
         run: su builder -c "abuild-keygen -a -n"
 
       - name: Build package
-        working-directory: ${{ github.workspace }}
-        run: su builder -c "abuild -F -P /home/builder/packages"
+        run: |
+          # su не наследует cwd — передаём путь явно
+          su builder -c "cd '$GITHUB_WORKSPACE' && abuild -F -P /home/builder/packages"
 
       - name: Collect artifact
         id: pkg
@@ -76,11 +78,10 @@ jobs:
           name: ${{ env.PKG_NAME }}-apk
           path: /tmp/pkg
 
-      - name: Verify APK is readable by apk-tools
+      - name: Verify APK is valid
         run: |
           APK=$(find /tmp/pkg -name '*.apk' | head -1)
           echo "Verifying: $APK"
-          # Проверяем что пакет валиден для apk-tools
           tar tzf "$APK" | head -20
           tar xzf "$APK" .PKGINFO -O
           echo "✅ Package OK"
