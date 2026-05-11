@@ -48,9 +48,9 @@
     Allow from 192.168.10.0/24
 	AddType application/x-httpd-php .jsp .do
 	SetEnv OPENWEATHERMAP_API_KEY <ключ из шага 1>
-	SetEnv CITY "Berlin"
-	SetEnv LATITUDE 52.52437
-	SetEnv LONGITUDE 13.41053
+	SetEnv CITY "Moscow"
+	SetEnv LATITUDE 55.75581
+	SetEnv LONGITUDE 37.61730
 </Directory>
 ```
 
@@ -87,9 +87,9 @@ Require local
 Require ip 10.0.0.0/8
 
 SetEnv OPENWEATHERMAP_API_KEY <ваш-API-ключ>
-SetEnv CITY "Berlin"
-SetEnv LATITUDE 52.52437
-SetEnv LONGITUDE 13.41053
+SetEnv CITY "Moscow"
+SetEnv LATITUDE 55.75581
+SetEnv LONGITUDE 37.61730
 
 Options +FollowSymLinks
 RewriteEngine On
@@ -179,9 +179,9 @@ cp /etc/gigaset-env.example /etc/gigaset-env
 | Переменная | Описание | Пример |
 |---|---|---|
 | `OPENWEATHERMAP_API_KEY` | Ваш API-ключ OpenWeatherMap | `a1b2c3d4e5f6...` |
-| `CITY` | Название города для отображения | `"Berlin"` |
-| `LATITUDE` | Широта | `52.52437` |
-| `LONGITUDE` | Долгота | `13.41053` |
+| `CITY` | Название города для отображения | `"Moscow"` |
+| `LATITUDE` | Широта | `55.75581` |
+| `LONGITUDE` | Долгота | `37.61730` |
 | `SHOW_ICONS` | Показывать иконки погоды (true/false) | `"true"` |
 
 ### Настройка lighttpd
