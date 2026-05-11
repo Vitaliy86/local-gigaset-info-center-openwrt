@@ -1,52 +1,63 @@
-# Makefile for building gigaset-info-center Alpine/OpenWRT package
-# Usage: make build / make install / make clean
+# Makefile for OpenWrt package: gigaset-info-center
+# Based on https://openwrt.org/ru/doc/devel/packages
+#
+# Usage:
+#   make package/gigaset-info-center/compile V=s
+#   make package/gigaset-info-center/clean
+#   make package/gigaset-info-center/install
 
-PKG_NAME = gigaset-info-center
-PKG_VER ?= 1.7
+include $(TOPDIR)/rules.mk
 
-.PHONY: all build clean install help test
+PKG_NAME:=gigaset-info-center
+PKG_VERSION:=1.7
+PKG_RELEASE:=1
 
-all: help
+PKG_LICENSE:=AGPL-3.0-or-later
+PKG_LICENSE_FILES:=LICENSE
+PKG_MAINTAINER:=Vitaliy86 <vitaliy86@github.com>
 
-help:
-	@echo "Usage:"
-	@echo "  make build    - Build the .apk package"
-	@echo "  make install  - Install the package on OpenWRT device"
-	@echo "  make test     - Verify package structure"
-	@echo "  make clean    - Clean build artifacts"
-	@echo ""
-	@echo "Environment variables:"
-	@echo "  PKG_VER   - Package version (default: 1.7)"
-	@echo "  HOST      - SSH host for OpenWRT device (default: root@192.168.1.1)"
-	@echo "  DEST_DIR  - Destination directory on device (default: /root/packages)"
+include $(INCLUDE_DIR)/package.mk
 
-build:
-	@bash scripts/build-package.sh "$(PKG_VER)"
+define Package/gigaset-info-center
+  SECTION:=net
+  CATEGORY:=Network
+  TITLE:=Replacement weather service for Gigaset IP handsets
+  URL:=https://github.com/Vitaliy86/local-gigaset-info-center-openwrt
+  DEPENDS:=+php8 +lighttpd +php8-mod-curl +php8-mod-gd
+endef
 
-install:
-	@if [ ! -f dist/$(PKG_NAME)-$(PKG_VER)-r0.apk ]; then \
-		echo "Error: Package not found. Run 'make build' first."; \
-		exit 1; \
-	fi
-	@echo "Installing package on OpenWRT device..."
-	@scp dist/$(PKG_NAME)-$(PKG_VER)-r0.apk $(HOST):$(DEST_DIR)/ || true
-	@ssh $(HOST) "apk add --no-signature /root/packages/$(PKG_NAME)-$(PKG_VER)-r0.apk" || true
-	@echo "Enabling service..."
-	@ssh $(HOST) "rc-update add gigaset-info-center default" || true
+define Package/gigaset-info-center/description
+  Replacement weather service for Gigaset IP handsets.
+  Provides XHTML-based weather information display for Gigaset
+  SIP handsets (SL55, SX503, etc.) using OpenWeatherMap API.
+endef
 
-test:
-	@if [ ! -f dist/$(PKG_NAME)-$(PKG_VER)-r0.apk ]; then \
-		echo "Error: Package not found. Run 'make build' first."; \
-		exit 1; \
-	fi
-	@echo "Testing package structure..."
-	@mkdir -p test-extract
-	@tar xf dist/$(PKG_NAME)-$(PKG_VER)-r0.apk -C test-extract
-	@test -f test-extract/gigaset-info-center/index.php || (echo "ERROR: index.php not found" && exit 1)
-	@test -f test-extract/gigaset-info-center/weather.php || (echo "ERROR: weather.php not found" && exit 1)
-	@test -f test-extract/gigaset-info-center/proxy.php || (echo "ERROR: proxy.php not found" && exit 1)
-	@test -d test-extract/gigaset-info-center/icons || (echo "ERROR: icons directory not found" && exit 1)
-	@echo "Package structure verified successfully!"
+define Package/gigaset-info-center/conffiles
+/etc/lighttpd/gigaset-info-center.conf
+/etc/gigaset-env
+endef
 
-clean:
-	@rm -rf build-stage dist test-extract
+define Build/Configure
+endef
+
+define Build/Compile
+endef
+
+define Package/gigaset-info-center/install
+	$(INSTALL_DIR) $(1)/srv/gigaset-info-center
+	$(CP) index.php $(1)/srv/gigaset-info-center/
+	$(CP) weather.php $(1)/srv/gigaset-info-center/
+	$(CP) proxy.php $(1)/srv/gigaset-info-center/
+	$(INSTALL_DIR) $(1)/srv/gigaset-info-center/icons
+	$(CP) icons/*.png $(1)/srv/gigaset-info-center/icons/
+	$(INSTALL_DIR) $(1)/etc/lighttpd
+	$(CP) etc/lighttpd/gigaset-info-center.conf $(1)/etc/lighttpd/
+	$(INSTALL_DIR) $(1)/etc
+	$(CP) etc/gigaset-env.example $(1)/etc/gigaset-env.example
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) gigaset-info-center.init $(1)/etc/init.d/gigaset-info-center
+	$(INSTALL_DIR) $(1)/usr/share/doc/gigaset-info-center
+	$(CP) LICENSE README.md $(1)/usr/share/doc/gigaset-info-center/
+endef
+
+$(eval $(call BuildPackage,gigaset-info-center))
