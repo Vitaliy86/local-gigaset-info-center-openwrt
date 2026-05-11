@@ -8,17 +8,18 @@ url="https://github.com/Vitaliy86/local-gigaset-info-center-openwrt"
 maintainer="Vitaliy86 <vitaliy86@github.com>"
 pkgdesc="Replacement weather service for Gigaset IP handsets"
 depends="php8 lighttpd php8-mod-curl php8-mod-gd lighttpd-mod-fastcgi"
-options="!strip !check"
+options="!strip !check !fhs"
 source=""
 
 build() { return 0; }
 
 package() {
-    mkdir -p "$pkgdir/srv/gigaset-info-center/icons"
-    cp "$startdir/index.php"   "$pkgdir/srv/gigaset-info-center/"
-    cp "$startdir/weather.php" "$pkgdir/srv/gigaset-info-center/"
-    cp "$startdir/proxy.php"   "$pkgdir/srv/gigaset-info-center/"
-    cp "$startdir"/icons/*.png "$pkgdir/srv/gigaset-info-center/icons/"
+    # Веб-файлы — /usr/share вместо /srv (Alpine запрещает /srv)
+    mkdir -p "$pkgdir/usr/share/gigaset-info-center/icons"
+    cp "$startdir/index.php"   "$pkgdir/usr/share/gigaset-info-center/"
+    cp "$startdir/weather.php" "$pkgdir/usr/share/gigaset-info-center/"
+    cp "$startdir/proxy.php"   "$pkgdir/usr/share/gigaset-info-center/"
+    cp "$startdir"/icons/*.png "$pkgdir/usr/share/gigaset-info-center/icons/"
 
     mkdir -p "$pkgdir/etc/lighttpd"
     cp "$startdir/etc/lighttpd/gigaset-info-center.conf" \
@@ -28,8 +29,4 @@ package() {
     mkdir -p "$pkgdir/etc/init.d"
     install -m 0755 "$startdir/gigaset-info-center.init" \
         "$pkgdir/etc/init.d/gigaset-info-center"
-
-    mkdir -p "$pkgdir/usr/share/doc/$pkgname"
-    cp "$startdir/LICENSE" "$startdir/README.md" \
-        "$pkgdir/usr/share/doc/$pkgname/"
 }
