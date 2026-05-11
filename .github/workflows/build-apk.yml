@@ -56,34 +56,31 @@ jobs:
       - name: Build valid .apk package with Docker
         id: create-package
         run: |
-          # Create .apk with proper control.tar.gz containing .PKGINFO and md5sums
-          cd build-stage
-          
-          # Create control directory with .PKGINFO
-          mkdir -p control
-          cat > control/.PKGINFO <<EOF
-          pkgname = ${{ env.PKG_NAME }}
-          pkgver = ${{ env.PKG_VER }}-r0
-          arch = noarch
-          license = AGPL-3.0-or-later
-          url = https://github.com/Vitaliy86/local-gigaset-info-center-openwrt
-          maintainer = Vitaliy86 <vitaliy86@github.com>
-          description = Replacement weather service for Gigaset IP handsets
-          depends = php lighttpd php-curl php-gd
-          options = !strip
-          EOF
-          
-          # Create control.tar.gz
-          tar czf control.tar.gz -C control .
-          
-          # Create data.tar.gz
-          tar czf data.tar.gz ${{ env.PKG_NAME }}
-          
-          # Combine into .apk (apk = data.tar.gz + control.tar.gz)
-          cat data.tar.gz control.tar.gz > ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
-          
-          # Clean up
-          rm -f data.tar.gz control.tar.gz
+          # Use Docker to build a valid apk package with proper signatures
+          docker run --rm -v "${{ github.workspace }}:/work" alpine:3.19 sh -c '
+            apk add --no-cache alpine-sdk tar gzip
+            cd /work/build-stage
+            # Create .PKGINFO
+            cat > .PKGINFO <<PKGINFO
+            pkgname = ${{ env.PKG_NAME }}
+            pkgver = ${{ env.PKG_VER }}-r0
+            arch = noarch
+            license = AGPL-3.0-or-later
+            url = https://github.com/Vitaliy86/local-gigaset-info-center-openwrt
+            maintainer = Vitaliy86 <vitaliy86@github.com>
+            description = Replacement weather service for Gigaset IP handsets
+            depends = php lighttpd php-curl php-gd
+            options = !strip
+            PKGINFO
+            # Create control.tar.gz
+            tar czf control.tar.gz .PKGINFO
+            # Create data.tar.gz
+            tar czf data.tar.gz ${{ env.PKG_NAME }}
+            # Combine into .apk (apk = data.tar.gz + control.tar.gz)
+            cat data.tar.gz control.tar.gz > ${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk
+            # Clean up intermediate files
+            rm -f data.tar.gz control.tar.gz .PKGINFO
+          '
           
           echo "package_name=${{ env.PKG_NAME }}-${{ env.PKG_VER }}.apk" >> $GITHUB_OUTPUT
 
