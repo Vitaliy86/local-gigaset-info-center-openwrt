@@ -59,17 +59,15 @@ jobs:
           cd build-stage
           
           # Create .PKGINFO control file
-          cat > .PKGINFO <<PKGINFO
-pkgname = ${{ env.PKG_NAME }}
-pkgver = ${{ env.PKG_VER }}-r0
-arch = noarch
-license = AGPL-3.0-or-later
-url = https://github.com/Vitaliy86/local-gigaset-info-center-openwrt
-maintainer = Vitaliy86 <vitaliy86@github.com>
-description = Replacement weather service for Gigaset IP handsets
-depends = php lighttpd php-curl php-gd
-options = !strip
-PKGINFO
+          echo "pkgname = ${{ env.PKG_NAME }}" > .PKGINFO
+          echo "pkgver = ${{ env.PKG_VER }}-r0" >> .PKGINFO
+          echo "arch = noarch" >> .PKGINFO
+          echo "license = AGPL-3.0-or-later" >> .PKGINFO
+          echo "url = https://github.com/Vitaliy86/local-gigaset-info-center-openwrt" >> .PKGINFO
+          echo "maintainer = Vitaliy86 <vitaliy86@github.com>" >> .PKGINFO
+          echo "description = Replacement weather service for Gigaset IP handsets" >> .PKGINFO
+          echo "depends = php lighttpd php-curl php-gd" >> .PKGINFO
+          echo "options = !strip" >> .PKGINFO
           
           # Create control.tar.gz with .PKGINFO
           tar czf control.tar.gz .PKGINFO
