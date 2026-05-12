@@ -149,7 +149,7 @@ jobs:
           su builder -c "
             cd /home/builder/package
 
-            export CARCH=${{ matrix.arch }}
+            export CARCH=${{ matrix.arch == 'aarch64' && 'aarch64' || matrix.arch == 'x86_64' && 'x86_64' || matrix.arch == 'armv7' && 'armv7' || matrix.arch == 'mips_sf' && 'mips_sf' || matrix.arch }}
 
             mkdir -p packages
 
@@ -218,13 +218,14 @@ jobs:
           mkdir -p ~/openwrt/package/local/gigaset-info-center
           cp -r ./* ~/openwrt/package/local/gigaset-info-center/
 
+      - name: Copy package to OpenWrt
+        run: |
+          mkdir -p ~/openwrt/package/feeds/local/gigaset-info-center
+          cp -r $GITHUB_WORKSPACE/* ~/openwrt/package/feeds/local/gigaset-info-center/
+
       - name: Configure OpenWrt
         run: |
           cd ~/openwrt
-
-          # Copy our package to the feeds directory
-          mkdir -p package/feeds/local/gigaset-info-center
-          cp -r ../local-gigaset-info-center-openwrt/* package/feeds/local/gigaset-info-center/
 
           # Update feeds and install our package
           ./scripts/feeds update local
