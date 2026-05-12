@@ -64,8 +64,8 @@ func loadConfig() Config {
 		IconBase:  env("ICON_BASE_URL", "https://openweathermap.org/img/wn"),
 		ProxyBase: env("PROXY_BASE_URL", "http://info.gigaset.net"),
 		ShowIcons: os.Getenv("SHOW_ICONS") != "false",
-		Listen:    env("LISTEN", ":80"),
-		Lang:      env("Lang", "ru"),
+		Listen:    env("LISTEN", ":8080"),
+		Lang:      env("Lang", "en"),
 	}
 }
 

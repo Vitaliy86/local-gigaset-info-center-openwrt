@@ -10,11 +10,11 @@
 OPENWEATHERMAP_API_KEY=your_api_key_here
 
 # Your city name (shown in the phone's title bar).
-CITY="Berlin"
+CITY="Moscow"
 
 # Coordinates for weather lookup (decimal degrees).
-LATITUDE=52.5200
-LONGITUDE=13.4050
+LATITUDE=55.7558
+LONGITUDE=37.6173
 
 # ── Optional ──────────────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ SHOW_ICONS=true
 # If OpenWrt LuCI already uses port 80, move LuCI to 443 or use:
 #   iptables -t nat -A PREROUTING -p tcp --dport 80 -s <phone-ip> -j REDIRECT --to-port 8080
 #   and set LISTEN=:8080
-LISTEN=:80
+LISTEN=:8080
 
 # Base URL of this server as seen by the Gigaset phone.
 # This must resolve to the router's IP (set via dnsmasq — see README).
@@ -36,3 +36,5 @@ PROXY_BASE_URL=http://info.gigaset.net
 # Source URL for PNG weather icons (default: OpenWeatherMap CDN).
 # Can be overridden to a local mirror for fully offline operation.
 ICON_BASE_URL=https://openweathermap.org/img/wn
+
+Lang=en

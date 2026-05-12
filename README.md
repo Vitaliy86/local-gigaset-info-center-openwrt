@@ -49,9 +49,9 @@ Minimum required settings:
 
 ```sh
 OPENWEATHERMAP_API_KEY=abc123...   # free at openweathermap.org
-CITY="Berlin"
-LATITUDE=52.5200
-LONGITUDE=13.4050
+CITY="Moscow"
+LATITUDE=55.7558
+LONGITUDE=37.6173
 ```
 
 ### 4. DNS: point info.gigaset.net to your router
