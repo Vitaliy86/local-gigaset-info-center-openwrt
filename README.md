@@ -3,10 +3,15 @@
 Replacement for the defunct `info.gigaset.net` weather service — delivers
 3-day weather forecasts to Gigaset DECT IP phones running OpenWrt.
 
-**v2.0**: Complete rewrite in Go. Single static binary, zero runtime
-dependencies — replaces the old `php8 + lighttpd + php8-mod-gd +
-php8-mod-curl + lighttpd-mod-fastcgi` stack (~20 MB installed) with one file
-(~6 MB).
+**v2.0**: Complete rewrite in Go by [Vitaliy86](https://github.com/Vitaliy86).
+Single static binary, zero runtime dependencies — replaces the old
+`php8 + lighttpd + php8-mod-gd + php8-mod-curl + lighttpd-mod-fastcgi` stack
+(~20 MB installed) with one file (~6 MB).
+
+## Authors
+
+- Original PHP version by [Tilman Vogel](https://github.com/tilmanVogel)
+- Go rewrite by [Vitaliy86](https://github.com/Vitaliy86)
 
 ## How it works
 

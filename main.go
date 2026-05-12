@@ -6,10 +6,13 @@
 //   GET /info/request.do      — same (alternate Gigaset endpoint)
 //   GET /proxy/image.do?data= — PNG→FNT icon proxy
 //
-// Configuration via environment variables (see etc/gigaset-info-center.conf.example).
+// Configuration via environment variables (see gigaset-info-center.conf.example).
 //
 // Copyright (c) 2024 Tilman Vogel <tilman.vogel@web.de>
+// Copyright (c) 2026 Vitaliy86 <vitaliy86@github.com>
 // AGPL-3.0-or-later — see LICENSE
+//
+// Go rewrite by Vitaliy86 — replaces the original PHP + lighttpd stack
 package main
 
 import (
