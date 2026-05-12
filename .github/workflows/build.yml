@@ -132,6 +132,8 @@ jobs:
           touch /var/lib/apk/db.lock
           chmod 755 /var/lib/apk
           chown root:root /var/db/pkg
+          # Create empty package database file
+          touch /var/db/pkg/.installed
 
       - name: Build APK
         run: |
