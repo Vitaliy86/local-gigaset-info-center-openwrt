@@ -1,4 +1,4 @@
-name: Build Go Binary + APK Packages
+name: Build Go Binary + Release
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── Stage 1: compile Go binaries for all target architectures ──────────────
+  # ── Build Go binaries for all target architectures ──────────────────────────
   build-binary:
     name: Build ${{ matrix.name }}
     runs-on: ubuntu-latest
@@ -74,98 +74,27 @@ jobs:
           path: gigaset-info-center-${{ matrix.name }}
           retention-days: 1
 
-  # ── Stage 2: package each binary into an APK ──────────────────────────────
-  build-apk:
-    name: Package APK (${{ matrix.apkarch }})
-    needs: build-binary
-    runs-on: ubuntu-latest
-    container:
-      image: alpine:3.21
-    strategy:
-      matrix:
-        include:
-          - name:    linux-arm64
-            apkarch: aarch64
-          - name:    linux-armv7
-            apkarch: armv7
-          - name:    linux-amd64
-            apkarch: x86_64
-          - name:    linux-mipsle-sf
-            apkarch: mips_sf
-
-    steps:
-      - name: Install build tools
-        run: apk add --no-cache alpine-sdk sudo
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download pre-built binary
-        uses: actions/download-artifact@v4
-        with:
-          name: bin-${{ matrix.name }}
-          path: /tmp/bin
-
-      - name: Create staging directory for APKBUILD
-        run: |
-          mkdir -p /tmp/apkbuild-staging
-          cp "$GITHUB_WORKSPACE/APKBUILD" /tmp/apkbuild-staging/
-          cp "$GITHUB_WORKSPACE/gigaset-info-center.conf.example" /tmp/apkbuild-staging/
-          cp "$GITHUB_WORKSPACE/gigaset-info-center.init" /tmp/apkbuild-staging/
-          chmod +x /tmp/bin/gigaset-info-center-${{ matrix.name }}
-          cp /tmp/bin/gigaset-info-center-${{ matrix.name }} \
-             /tmp/apkbuild-staging/gigaset-info-center
-
-      - name: Setup abuild user
-        run: |
-          adduser -D builder
-          addgroup builder abuild
-          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
-
-      - name: Generate signing key
-        run: |
-          su builder -c "abuild-keygen -a -n"
-          # Copy public key as root so apk-tools trusts the package.
-          find /home/builder/.abuild -name '*.pub' -exec cp {} /etc/apk/keys/ \;
-
-      - name: Build APK
-        run: |
-          su builder -c "
-            cd /tmp/apkbuild-staging &&
-            CARCH=${{ matrix.apkarch }} abuild -F -d -P /home/builder/packages
-          "
-
-      - name: Show result
-        run: find /home/builder/packages -name '*.apk' -exec ls -lah {} \;
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-${{ matrix.apkarch }}
-          path: /home/builder/packages/**/*.apk
-          retention-days: 30
-
-  # ── Stage 3: attach all APKs to a GitHub Release (on tag push) ────────────
+  # ── Create GitHub Release with all binaries (on tag push) ──────────────────
   release:
     name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: build-apk
+    needs: build-binary
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download all APK artifacts
+      - name: Download all binary artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: apk-*
+          pattern: bin-*
           path: dist
           merge-multiple: true
 
       - name: List release assets
-        run: find dist -name '*.apk' | sort
+        run: ls -lah dist/
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/**/*.apk
+          files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
