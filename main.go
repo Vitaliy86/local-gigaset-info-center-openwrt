@@ -2,9 +2,10 @@
 // Single static binary; replaces PHP + lighttpd + php-gd + php-curl stack.
 //
 // Endpoints served:
-//   GET /info/menu.jsp        — XHTML-GP weather page (main Gigaset request)
-//   GET /info/request.do      — same (alternate Gigaset endpoint)
-//   GET /proxy/image.do?data= — PNG→FNT icon proxy
+//
+//	GET /info/menu.jsp        — XHTML-GP weather page (main Gigaset request)
+//	GET /info/request.do      — same (alternate Gigaset endpoint)
+//	GET /proxy/image.do?data= — PNG→FNT icon proxy
 //
 // Configuration via environment variables (see gigaset-info-center.conf.example).
 //
@@ -415,6 +416,21 @@ func main() {
 	}
 	if cfg.City == "" {
 		log.Print("warning: CITY is not set")
+	}
+
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "--version", "-v":
+			fmt.Printf("gigaset-info-center v%s\n", version)
+			return
+		case "--help", "-h":
+			fmt.Println(`Usage: gigaset-info-center [options]
+
+Options:
+  --version, -v    Show version
+  --help, -h       Show help`)
+			return
+		}
 	}
 
 	mux := http.NewServeMux()
