@@ -222,13 +222,24 @@ jobs:
         run: |
           cd ~/openwrt
 
+          # Copy our package to the feeds directory
+          mkdir -p package/feeds/local/gigaset-info-center
+          cp -r ../local-gigaset-info-center-openwrt/* package/feeds/local/gigaset-info-center/
+
+          # Update feeds and install our package
+          ./scripts/feeds update local
+          ./scripts/feeds install -a -p local
+
+          # Enable the package in config
+          echo "CONFIG_PACKAGE_gigaset-info-center=y" >> .config
+
           make defconfig
 
       - name: Build package
         run: |
           cd ~/openwrt
 
-          make package/local/gigaset-info-center/compile V=s -j1
+          make package/gigaset-info-center/compile V=s -j1
 
       - name: Collect IPK artifacts
         run: |
