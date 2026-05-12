@@ -1,12 +1,19 @@
-# Build artifacts
-dist/
-build-stage/
-test-extract/
+# Binaries
+gigaset-info-center
+gigaset-info-center-*
+
+# Go build cache
+go-build*/
+
+# APK artifacts
 *.apk
 
-# Environment config (contains API keys)
-.env
-/etc/gigaset-info-center.conf
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# APKBUILD is tracked but template is used for builds
-scripts/APKBUILD.template
+# OS
+.DS_Store
+Thumbs.db

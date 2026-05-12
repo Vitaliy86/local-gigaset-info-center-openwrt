@@ -1,8 +1,0 @@
-Require local
-Require ip 10.0.0.0/8
-
-SetEnv BASE_URL http://gigaset.net/img
-
-Options +FollowSymLinks
-RewriteEngine On
-RewriteRule ^proxy/image\.do$ proxy.php [L,QSA]

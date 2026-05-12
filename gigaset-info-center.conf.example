@@ -1,0 +1,38 @@
+# gigaset-info-center configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# Copy this file to /etc/gigaset-info-center.conf and fill in your values.
+# Format: plain shell key=value (no spaces around =, quote values with spaces).
+
+# ── Required ──────────────────────────────────────────────────────────────────
+
+# OpenWeatherMap API key — free tier is sufficient.
+# Get yours at: https://openweathermap.org/api
+OPENWEATHERMAP_API_KEY=your_api_key_here
+
+# Your city name (shown in the phone's title bar).
+CITY="Berlin"
+
+# Coordinates for weather lookup (decimal degrees).
+LATITUDE=52.5200
+LONGITUDE=13.4050
+
+# ── Optional ──────────────────────────────────────────────────────────────────
+
+# Show weather icons as 1bpp bitmaps on the phone screen (default: true).
+# Set to false to display text labels instead (saves one HTTP round-trip).
+SHOW_ICONS=true
+
+# TCP address to listen on (default: :80).
+# Port 80 is required unless you redirect with iptables (see README).
+# If OpenWrt LuCI already uses port 80, move LuCI to 443 or use:
+#   iptables -t nat -A PREROUTING -p tcp --dport 80 -s <phone-ip> -j REDIRECT --to-port 8080
+#   and set LISTEN=:8080
+LISTEN=:80
+
+# Base URL of this server as seen by the Gigaset phone.
+# This must resolve to the router's IP (set via dnsmasq — see README).
+PROXY_BASE_URL=http://info.gigaset.net
+
+# Source URL for PNG weather icons (default: OpenWeatherMap CDN).
+# Can be overridden to a local mirror for fully offline operation.
+ICON_BASE_URL=https://openweathermap.org/img/wn
