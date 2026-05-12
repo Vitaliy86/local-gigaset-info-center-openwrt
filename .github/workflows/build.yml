@@ -48,7 +48,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.23'
           cache: true
 
       - name: Build static binary
@@ -62,7 +62,7 @@ jobs:
           go build \
             -ldflags="-s -w -X main.version=${GITHUB_REF_NAME:-dev}" \
             -o gigaset-info-center-${{ matrix.name }} \
-            ./cmd/gigaset-info-center/
+            .
 
           ls -lah gigaset-info-center-${{ matrix.name }}
           file  gigaset-info-center-${{ matrix.name }}
