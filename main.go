@@ -46,6 +46,7 @@ type Config struct {
 	ProxyBase string // our server's base URL as seen by the phone
 	ShowIcons bool
 	Listen    string
+	Lang      string
 }
 
 func loadConfig() Config {
@@ -64,6 +65,7 @@ func loadConfig() Config {
 		ProxyBase: env("PROXY_BASE_URL", "http://info.gigaset.net"),
 		ShowIcons: os.Getenv("SHOW_ICONS") != "false",
 		Listen:    env("LISTEN", ":80"),
+		Lang:      env("Lang", "ru"),
 	}
 }
 
@@ -154,10 +156,11 @@ func condLabel(d DayData) string {
 func fetchWeather(cfg Config) ([]DayData, error) {
 	apiURL := fmt.Sprintf(
 		"https://api.openweathermap.org/data/2.5/forecast"+
-			"?lat=%s&lon=%s&appid=%s&units=metric&lang=de",
+			"?lat=%s&lon=%s&appid=%s&units=metric&lang=%s",
 		url.QueryEscape(cfg.Lat),
 		url.QueryEscape(cfg.Lon),
 		url.QueryEscape(cfg.APIKey),
+		url.QueryEscape(cfg.Lang),
 	)
 
 	resp, err := http.Get(apiURL) //nolint:noctx
@@ -408,16 +411,7 @@ func toFnt(src image.Image, w, h int) []byte {
 func main() {
 	cfg := loadConfig()
 
-	if cfg.APIKey == "" {
-		log.Fatal("OPENWEATHERMAP_API_KEY is required")
-	}
-	if cfg.Lat == "" || cfg.Lon == "" {
-		log.Fatal("LATITUDE and LONGITUDE are required")
-	}
-	if cfg.City == "" {
-		log.Print("warning: CITY is not set")
-	}
-
+	// Check for CLI arguments first (version/help)
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "--version", "-v":
@@ -428,9 +422,35 @@ func main() {
 
 Options:
   --version, -v    Show version
-  --help, -h       Show help`)
+  --help, -h       Show help
+
+Configuration:
+  Configuration can be provided via:
+  1. Environment variables (LATITUDE, LONGITUDE, CITY, OPENWEATHERMAP_API_KEY, etc.)
+  2. Configuration file: /etc/gigaset-info-center.conf (INI format)
+
+  The application will load configuration from the file if it exists,
+  otherwise it falls back to environment variables.
+
+Examples:
+  gigaset-info-center --version
+  gigaset-info-center --help
+  gigaset-info-center  (uses environment variables or /etc/gigaset-info-center.conf)`)
 			return
 		}
+	}
+
+	if cfg.APIKey == "" {
+		log.Fatal("OPENWEATHERMAP_API_KEY is required")
+	}
+	if cfg.Lat == "" || cfg.Lon == "" {
+		log.Fatal("LATITUDE and LONGITUDE are required")
+	}
+	if cfg.City == "" {
+		log.Print("warning: CITY is not set")
+	}
+	if cfg.Lang == "" {
+		log.Print("warning: Lang is not set")
 	}
 
 	mux := http.NewServeMux()
