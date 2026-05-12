@@ -134,6 +134,8 @@ jobs:
           chown root:root /var/db/pkg
           # Create empty package database file
           touch /var/db/pkg/.installed
+          # Allow builder to access the database
+          chmod -R 755 /var/db
 
       - name: Build APK
         run: |
