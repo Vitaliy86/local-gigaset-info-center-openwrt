@@ -87,8 +87,8 @@ jobs:
             apkarch: mips_sf
 
     steps:
-      - name: Install build tools
-        run: apk add --no-cache alpine-sdk sudo
+      - name: Install build tools and dependencies
+        run: apk add --no-cache alpine-sdk sudo git make cmake build-base
 
       - name: Checkout repository
         uses: actions/checkout@v4
