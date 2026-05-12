@@ -101,21 +101,22 @@ jobs:
 
       - name: Create staging directory for APKBUILD
         run: |
-          mkdir -p /tmp/apkbuild-staging
-          cp "$GITHUB_WORKSPACE/APKBUILD" /tmp/apkbuild-staging/
+          mkdir -p /home/builder/apkbuild-staging
+          cp "$GITHUB_WORKSPACE/APKBUILD" /home/builder/apkbuild-staging/
           cp "$GITHUB_WORKSPACE/gigaset-info-center.conf.example" \
-             /tmp/apkbuild-staging/
+             /home/builder/apkbuild-staging/
           cp "$GITHUB_WORKSPACE/gigaset-info-center.init" \
-             /tmp/apkbuild-staging/
+             /home/builder/apkbuild-staging/
           chmod +x "/tmp/bin/gigaset-info-center-${{ matrix.name }}"
           cp "/tmp/bin/gigaset-info-center-${{ matrix.name }}" \
-             /tmp/apkbuild-staging/gigaset-info-center
+             /home/builder/apkbuild-staging/gigaset-info-center
 
       - name: Setup abuild user
         run: |
           adduser -D builder
           addgroup builder abuild
           echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          chown -R builder:builder /home/builder/apkbuild-staging
 
       - name: Generate signing key
         run: |
@@ -126,7 +127,7 @@ jobs:
       - name: Build APK
         run: |
           su builder -c "
-            cd /tmp/apkbuild-staging &&
+            cd /home/builder/apkbuild-staging &&
             CARCH=${{ matrix.apkarch }} abuild -F -d -P /home/builder/packages
           "
 
