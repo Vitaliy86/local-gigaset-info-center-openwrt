@@ -126,10 +126,12 @@ jobs:
 
       - name: Initialize apk database
         run: |
+          mkdir -p /var/db/pkg
           mkdir -p /var/lib/apk
           echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" > /etc/apk/repositories
           touch /var/lib/apk/db.lock
           chmod 755 /var/lib/apk
+          chown root:root /var/db/pkg
 
       - name: Build APK
         run: |
