@@ -124,6 +124,13 @@ jobs:
           find /home/builder/.abuild -name '*.pub' \
              -exec cp {} /etc/apk/keys/ \;
 
+      - name: Initialize apk database
+        run: |
+          mkdir -p /var/lib/apk
+          echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" > /etc/apk/repositories
+          touch /var/lib/apk/db.lock
+          chmod 755 /var/lib/apk
+
       - name: Build APK
         run: |
           su builder -c "
