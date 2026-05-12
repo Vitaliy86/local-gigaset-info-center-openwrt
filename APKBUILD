@@ -19,7 +19,7 @@ package() {
         "$pkgdir/usr/bin/gigaset-info-center"
 
     # Example config
-    install -D -m 0644 "$startdir/etc/gigaset-info-center.conf.example" \
+    install -D -m 0644 "$startdir/gigaset-info-center.conf.example" \
         "$pkgdir/etc/gigaset-info-center.conf.example"
 
     # OpenWrt procd init script

@@ -106,19 +106,21 @@ jobs:
           name: bin-${{ matrix.name }}
           path: /tmp/bin
 
-      - name: Stage binary for APKBUILD
+      - name: Create staging directory for APKBUILD
         run: |
+          mkdir -p /tmp/apkbuild-staging
+          cp "$GITHUB_WORKSPACE/APKBUILD" /tmp/apkbuild-staging/
+          cp "$GITHUB_WORKSPACE/gigaset-info-center.conf.example" /tmp/apkbuild-staging/
+          cp "$GITHUB_WORKSPACE/gigaset-info-center.init" /tmp/apkbuild-staging/
           chmod +x /tmp/bin/gigaset-info-center-${{ matrix.name }}
-          # APKBUILD expects the binary at $startdir/gigaset-info-center
           cp /tmp/bin/gigaset-info-center-${{ matrix.name }} \
-             "$GITHUB_WORKSPACE/gigaset-info-center"
+             /tmp/apkbuild-staging/gigaset-info-center
 
       - name: Setup abuild user
         run: |
           adduser -D builder
           addgroup builder abuild
           echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
-          chown -R builder:builder "$GITHUB_WORKSPACE"
 
       - name: Generate signing key
         run: |
@@ -129,7 +131,7 @@ jobs:
       - name: Build APK
         run: |
           su builder -c "
-            cd '$GITHUB_WORKSPACE' &&
+            cd /tmp/apkbuild-staging &&
             CARCH=${{ matrix.apkarch }} abuild -F -d -P /home/builder/packages
           "
 
