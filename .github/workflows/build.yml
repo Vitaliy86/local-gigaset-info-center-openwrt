@@ -132,15 +132,15 @@ jobs:
       - name: Download pre-built binary
         uses: actions/download-artifact@v4
         with:
-          name: bin-linux-${{ matrix.arch == 'x86_64' && 'amd64' || matrix.arch == 'aarch64' && 'arm64' || matrix.arch == 'mips_sf' && 'mipsle-sf' || matrix.arch }}
+          name: bin-linux-${{ matrix.arch == 'x86_64' && 'amd64' || matrix.arch == 'aarch64' && 'arm64' || matrix.arch == 'armv7' && 'armv7' || matrix.arch == 'mips_sf' && 'mipsle-sf' || matrix.arch }}
           path: /tmp/bin
 
       - name: Prepare package tree
         run: |
           mkdir -p /home/builder/package
           cp -r . /home/builder/package/
-          chmod +x "/tmp/bin/gigaset-info-center-linux-${{ matrix.arch == 'x86_64' && 'amd64' || matrix.arch == 'aarch64' && 'arm64' || matrix.arch == 'mips_sf' && 'mipsle-sf' || matrix.arch }}"
-          cp "/tmp/bin/gigaset-info-center-linux-${{ matrix.arch == 'x86_64' && 'amd64' || matrix.arch == 'aarch64' && 'arm64' || matrix.arch == 'mips_sf' && 'mipsle-sf' || matrix.arch }}" \
+          chmod +x "/tmp/bin/gigaset-info-center-linux-${{ matrix.arch == 'x86_64' && 'amd64' || matrix.arch == 'aarch64' && 'arm64' || matrix.arch == 'armv7' && 'armv7' || matrix.arch == 'mips_sf' && 'mipsle-sf' || matrix.arch }}"
+          cp "/tmp/bin/gigaset-info-center-linux-${{ matrix.arch == 'x86_64' && 'amd64' || matrix.arch == 'aarch64' && 'arm64' || matrix.arch == 'armv7' && 'armv7' || matrix.arch == 'mips_sf' && 'mipsle-sf' || matrix.arch }}" \
              /home/builder/package/gigaset-info-center
           chown -R builder:builder /home/builder/package
 
@@ -149,7 +149,7 @@ jobs:
           su builder -c "
             cd /home/builder/package
 
-            export CARCH=${{ matrix.arch == 'aarch64' && 'aarch64' || matrix.arch == 'x86_64' && 'x86_64' || matrix.arch == 'armv7' && 'armv7' || matrix.arch == 'mips_sf' && 'mips_sf' || matrix.arch }}
+            export CARCH=${{ matrix.arch }}
 
             mkdir -p packages
 

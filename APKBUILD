@@ -1,8 +1,8 @@
 # Maintainer: Vitaliy86 <vitaliy86@github.com>
 pkgname="gigaset-info-center"
 pkgver="2.0"
-pkgrel=0
-arch="aarch64 armv7 x86_64 mips_sf mipsel_sf"
+pkgrel=1
+arch="noarch"  # binary is arch-specific, set by CI
 pkgdesc="Replacement weather service for Gigaset IP handsets"
 url="https://github.com/Vitaliy86/local-gigaset-info-center-openwrt"
 license="AGPL-3.0-or-later"
