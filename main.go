@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/binary"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"image"
 	_ "image/jpeg"
@@ -50,13 +51,19 @@ type Config struct {
 }
 
 func loadConfig() Config {
+	flagConfig := flag.NewFlagSet("config", flag.ContinueOnError)
+	configPath := flagConfig.String("f", "/etc/gigaset-info-center.conf", "path to configuration file")
+	_ = flagConfig.Parse(os.Args[1:])
+
 	env := func(k, def string) string {
 		if v := os.Getenv(k); v != "" {
 			return v
 		}
 		return def
 	}
-	return Config{
+
+	// Default values from env or defaults
+	cfg := Config{
 		Lat:       env("LATITUDE", ""),
 		Lon:       env("LONGITUDE", ""),
 		City:      env("CITY", ""),
@@ -67,6 +74,46 @@ func loadConfig() Config {
 		Listen:    env("LISTEN", ":8080"),
 		Lang:      env("Lang", "en"),
 	}
+
+	// If config file is provided, override with file values (simple key=value parser)
+	if *configPath != "" {
+		if data, err := os.ReadFile(*configPath); err == nil {
+			lines := strings.Split(string(data), "\n")
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if line == "" || strings.HasPrefix(line, "#") {
+					continue
+				}
+				parts := strings.SplitN(line, "=", 2)
+				if len(parts) == 2 {
+					key := strings.TrimSpace(parts[0])
+					val := strings.TrimSpace(parts[1])
+					switch key {
+					case "LATITUDE":
+						cfg.Lat = val
+					case "LONGITUDE":
+						cfg.Lon = val
+					case "CITY":
+						cfg.City = val
+					case "OPENWEATHERMAP_API_KEY":
+						cfg.APIKey = val
+					case "ICON_BASE_URL":
+						cfg.IconBase = val
+					case "PROXY_BASE_URL":
+						cfg.ProxyBase = val
+					case "SHOW_ICONS":
+						cfg.ShowIcons = (val != "false")
+					case "LISTEN":
+						cfg.Listen = val
+					case "Lang":
+						cfg.Lang = val
+					}
+				}
+			}
+		}
+	}
+
+	return cfg
 }
 
 // ─── OpenWeatherMap API types ─────────────────────────────────────────────────
@@ -423,6 +470,7 @@ func main() {
 Options:
   --version, -v    Show version
   --help, -h       Show help
+  -f, --config     Path to configuration file
 
 Configuration:
   Configuration can be provided via:
@@ -435,6 +483,7 @@ Configuration:
 Examples:
   gigaset-info-center --version
   gigaset-info-center --help
+  gigaset-info-center -f /tmp/my.conf
   gigaset-info-center  (uses environment variables or /etc/gigaset-info-center.conf)`)
 			return
 		}
