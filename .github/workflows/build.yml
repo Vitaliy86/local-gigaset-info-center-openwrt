@@ -24,21 +24,6 @@ jobs:
             goarch: arm64
             goarm: ""
             gomips: ""
-          - name: linux-armv7
-            goos: linux
-            goarch: arm
-            goarm: "7"
-            gomips: ""
-          - name: linux-amd64
-            goos: linux
-            goarch: amd64
-            goarm: ""
-            gomips: ""
-          - name: linux-mipsle-sf
-            goos: linux
-            goarch: mipsle
-            goarm: ""
-            gomips: softfloat
 
     steps:
       - name: Checkout
@@ -80,10 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         arch:
-          - x86_64
           - aarch64
-          - armv7
-          - mips_sf
 
     container:
       image: alpine:3.22
