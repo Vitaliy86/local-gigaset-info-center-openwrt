@@ -223,13 +223,17 @@ jobs:
           mkdir -p ~/openwrt/package/feeds/local/gigaset-info-center
           cp -r $GITHUB_WORKSPACE/* ~/openwrt/package/feeds/local/gigaset-info-center/
 
+      - name: Add local feed configuration
+        run: |
+          echo "src/file file:///home/runner/openwrt/package/feeds/local" >> ~/openwrt/include/feeds.conf
+
       - name: Configure OpenWrt
         run: |
           cd ~/openwrt
 
           # Update feeds and install our package
-          ./scripts/feeds update local
-          ./scripts/feeds install -a -p local
+          ./scripts/feeds update
+          ./scripts/feeds install -a
 
           # Enable the package in config
           echo "CONFIG_PACKAGE_gigaset-info-center=y" >> .config
