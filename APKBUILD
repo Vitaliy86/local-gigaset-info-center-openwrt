@@ -7,7 +7,6 @@ pkgdesc="Replacement weather service for Gigaset IP handsets"
 url="https://github.com/Vitaliy86/local-gigaset-info-center-openwrt"
 license="AGPL-3.0-or-later"
 depends=""
-provides="$pkgname=$pkgver-r$pkgrel"
 options="!strip !check !fhs"
 # Binary is built by CI and placed in $startdir before abuild runs.
 source=""
