@@ -151,11 +151,7 @@ jobs:
           name: apk-${{ matrix.arch }}
           path: /artifacts/*.apk
 
-  build-openwrt:
-    name: Package OpenWrt IPK
-    runs-on: ubuntu-latest
-
-    steps:
+# build-openwrt stage removed as requested
       - name: Install dependencies
         run: |
           sudo apt update
