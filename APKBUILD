@@ -2,7 +2,8 @@
 pkgname="gigaset-info-center"
 pkgver="2.0"
 pkgrel=1
-arch="$CARCH"  # binary is arch-specific, set by CI
+arch="aarch64 armv7 armv8 amd64 mipsle"
+provides="aarch64 armv7 armv8 amd64 mipsle"
 pkgdesc="Replacement weather service for Gigaset IP handsets"
 url="https://github.com/Vitaliy86/local-gigaset-info-center-openwrt"
 license="AGPL-3.0-or-later"
