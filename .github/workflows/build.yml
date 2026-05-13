@@ -155,6 +155,7 @@ jobs:
 
             abuild checksum || true
             abuild -r
+            ls -R /home/builder/package/packages || ls -R /home/builder/packages || ls -R /home/builder/.abuild/packages
           "
 
       - name: Collect APK artifacts
