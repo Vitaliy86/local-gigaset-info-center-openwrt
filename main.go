@@ -48,6 +48,7 @@ type Config struct {
 	ShowIcons bool
 	Listen    string
 	Lang      string
+	Verbosity int // 0: none, 1: -v, 2: -vv
 }
 
 func loadConfig() Config {
@@ -73,6 +74,18 @@ func loadConfig() Config {
 		ShowIcons: os.Getenv("SHOW_ICONS") != "false",
 		Listen:    env("LISTEN", ":8080"),
 		Lang:      env("Lang", "en"),
+	}
+
+	// Handle verbosity from command line arguments manually to support -v and -vv
+	for _, arg := range os.Args {
+		if arg == "-v" || arg == "--verbose" {
+			if cfg.Verbosity < 1 {
+				cfg.Verbosity = 1
+			}
+		}
+		if arg == "-vv" || arg == "--very-verbose" {
+			cfg.Verbosity = 2
+		}
 	}
 
 	// If config file is provided, override with file values (simple key=value parser)
@@ -107,6 +120,8 @@ func loadConfig() Config {
 						cfg.Listen = val
 					case "Lang":
 						cfg.Lang = val
+					case "VERBOSITY":
+						fmt.Sscanf(val, "%d", &cfg.Verbosity)
 					}
 				}
 			}
@@ -163,38 +178,108 @@ type DayData struct {
 
 var weekdays = [7]string{"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"}
 
-// iconLabels maps OWM icon codes → German weather label.
-var iconLabels = map[string]string{
-	"01d": "Sonnig",
-	"02d": "Wolkig",
-	"03d": "Bewölkt",
-	"04d": "Bedeckt",
-	"09d": "Schauer",
-	"10d": "Regen",
-	"11d": "Gewitter",
-	"13d": "Schnee",
-	"50d": "Nebel",
+// translations holds localized strings for the weather page.
+var translations = map[string]map[string]string{
+	"de": {
+		"today":      "Heute",
+		"now":        "jetzt",
+		"max":        "max",
+		"error":      "Fehler",
+		"rain_light": "Leichter Regen",
+		"rain_med":   "Regen",
+		"rain_heavy": "Starker Regen",
+		"sunny":      "Sonnig",
+		"cloudy":     "Wolkig",
+		"overcast":   "Bewölkt",
+		"covered":    "Bedeckt",
+		"showers":    "Schauer",
+		"rain":       "Regen",
+		"storm":      "Gewitter",
+		"snow":       "Schnee",
+		"fog":        "Nebel",
+	},
+	"en": {
+		"today":      "Today",
+		"now":        "now",
+		"max":        "max",
+		"error":      "Error",
+		"rain_light": "Light Rain",
+		"rain_med":   "Rain",
+		"rain_heavy": "Heavy Rain",
+		"sunny":      "Sunny",
+		"cloudy":     "Cloudy",
+		"overcast":   "Overcast",
+		"covered":    "Covered",
+		"showers":    "Showers",
+		"rain":       "Rain",
+		"storm":      "Storm",
+		"snow":       "Snow",
+		"fog":        "Fog",
+	},
+	"ru": {
+		"today":      "Сегодня",
+		"now":        "сейчас",
+		"max":        "макс",
+		"error":      "Ошибка",
+		"rain_light": "Легкий дождь",
+		"rain_med":   "Дождь",
+		"rain_heavy": "Сильный дождь",
+		"sunny":      "Солнечно",
+		"cloudy":     "Облачно",
+		"overcast":   "Пасмурно",
+		"covered":    "Закрыто облаками",
+		"showers":    "Ливень",
+		"rain":       "Дождь",
+		"storm":      "Гроза",
+		"snow":       "Снег",
+		"fog":        "Туман",
+	},
 }
 
-func rainLabel(mm float64) string {
+// iconLabels maps OWM icon codes → localized weather label key.
+var iconLabels = map[string]string{
+	"01d": "sunny",
+	"02d": "cloudy",
+	"03d": "overcast",
+	"04d": "covered",
+	"09d": "showers",
+	"10d": "rain",
+	"11d": "storm",
+	"13d": "snow",
+	"50d": "fog",
+}
+
+func rainLabel(mm float64, lang string) string {
+	t := translations[lang]
+	if t == nil {
+		t = translations["en"]
+	}
 	switch {
 	case mm < 3:
-		return "Leichter Regen"
+		return t["rain_light"]
 	case mm < 15:
-		return "Regen"
+		return t["rain_med"]
 	default:
-		return "Starker Regen"
+		return t["rain_heavy"]
 	}
 }
 
-// condLabel returns the human-readable German condition for a day.
-func condLabel(d DayData) string {
+// condLabel returns the human-readable condition for a day in the given language.
+func condLabel(d DayData, lang string) string {
+	t := translations[lang]
+	if t == nil {
+		t = translations["en"]
+	}
+
 	if d.Icon == "09d" || d.Icon == "10d" || d.Icon == "11d" ||
 		(d.Icon == "04d" && d.TotalRain > 2) {
-		return rainLabel(d.TotalRain)
+		return rainLabel(d.TotalRain, lang)
 	}
-	if l, ok := iconLabels[d.Icon]; ok {
-		return l
+
+	if labelKey, ok := iconLabels[d.Icon]; ok {
+		if val, exists := t[labelKey]; exists {
+			return val
+		}
 	}
 	return d.Icon
 }
@@ -203,11 +288,11 @@ func condLabel(d DayData) string {
 func fetchWeather(cfg Config) ([]DayData, error) {
 	apiURL := fmt.Sprintf(
 		"https://api.openweathermap.org/data/2.5/forecast"+
-			"?lat=%s&lon=%s&appid=%s&units=metric&lang=%s",
+			"?lat=%s&lon=%s&appid=%s&units=metric&lang=en",
 		url.QueryEscape(cfg.Lat),
 		url.QueryEscape(cfg.Lon),
 		url.QueryEscape(cfg.APIKey),
-		url.QueryEscape(cfg.Lang),
+		//url.QueryEscape(cfg.Lang),
 	)
 
 	client := &http.Client{
@@ -340,16 +425,21 @@ func handleWeather(cfg Config) http.HandlerFunc {
 				"<meta name=\"expires\" content=\"3600\" />\n</head>\n<body>\n",
 			cfg.City, version)
 
+		t := translations[cfg.Lang]
+		if t == nil {
+			t = translations["en"]
+		}
+
 		if err != nil {
 			log.Printf("weather error: %v", err)
-			fmt.Fprintf(w, "<p><b>Fehler:</b> %s</p>\n", err)
+			fmt.Fprintf(w, "<p><b>%s:</b> %s</p>\n", t["error"], err)
 		} else {
 			for i, d := range days {
 				wd := weatherWidget(cfg, d)
 				if i == 0 {
 					// "Heute <icon/label> jetzt 12°C, max 15°C"
-					fmt.Fprintf(w, "<p>Heute %s jetzt %s°C, max %s°C</p>\n",
-						wd, fmtTemp(d.CurrentTemp), fmtTemp(d.MaxTemp))
+					fmt.Fprintf(w, "<p>%s %s %s %s°C, %s %s°C</p>\n",
+						t["today"], wd, t["now"], fmtTemp(d.CurrentTemp), t["max"], fmtTemp(d.MaxTemp))
 				} else {
 					// "Mo <icon/label> 8-14°C"
 					dow := strings.SplitN(d.Date, ",", 2)[0]
@@ -406,7 +496,7 @@ func handleIndex(cfg Config) http.HandlerFunc {
 // weatherWidget returns either a text label or an <object> fnt tag.
 func weatherWidget(cfg Config, d DayData) string {
 	if !cfg.ShowIcons {
-		return condLabel(d)
+		return condLabel(d, cfg.Lang)
 	}
 	iconURL := url.QueryEscape(cfg.IconBase + "/" + d.Icon + ".png")
 	return fmt.Sprintf(
@@ -527,7 +617,7 @@ Configuration:
 Examples:
   gigaset-info-center --version
   gigaset-info-center --help
-  gigaset-info-center -f /tmp/my.conf
+  gigaset-info-center -f /etc/gigaset-info-center.conf
   gigaset-info-center  (uses environment variables or /etc/gigaset-info-center.conf)`)
 			return
 		}
