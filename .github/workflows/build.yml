@@ -81,7 +81,24 @@ jobs:
             git \
             bash \
             fakeroot \
-            build-base
+            build-base \
+            clang \
+            flex \
+            bison \
+            g++ \
+            gawk \
+            gettext \
+            ncurses-dev \
+            openssl-dev \
+            python3 \
+            rsync \
+            swig \
+            unzip \
+            zlib-dev \
+            file \
+            wget \
+            curl \
+            libdeflate-tools
 
       - name: Init APK database
         run: |
@@ -102,14 +119,8 @@ jobs:
         run: |
           mkdir -p /home/builder/.abuild
           chown -R builder:builder /home/builder
-
-          su builder -c "
-            abuild-keygen -a -i -n
-          "
-          # Ensure the user is explicitly in the group for the current session
+          su builder -c "abuild-keygen -a -i -n"
           su builder -c "id -Gn | grep -q abuild || usermod -aG abuild builder"
-          # Ensure membership is recognized in the current shell context if needed,
-          # but su -c should handle it. We'll also ensure group exists.
 
       - name: Download pre-built binary
         uses: actions/download-artifact@v4
@@ -130,11 +141,8 @@ jobs:
         run: |
           su builder -c "
             cd /home/builder/package
-
             export CARCH=${{ matrix.arch }}
-
             mkdir -p packages
-
             abuild checksum || true
             abuild -r
             ls -R /home/builder/package/packages || ls -R /home/builder/packages || ls -R /home/builder/.abuild/packages
@@ -150,90 +158,3 @@ jobs:
         with:
           name: apk-${{ matrix.arch }}
           path: /artifacts/*.apk
-
-# build-openwrt stage removed as requested
-      - name: Install dependencies
-        run: |
-          sudo apt update
-
-          sudo apt install -y \
-            build-essential \
-            clang \
-            flex \
-            bison \
-            g++ \
-            gawk \
-            gcc-multilib \
-            g++-multilib \
-            gettext \
-            git \
-            libncurses5-dev \
-            libssl-dev \
-            python3-setuptools \
-            rsync \
-            swig \
-            unzip \
-            zlib1g-dev \
-            file \
-            wget \
-            curl \
-            libdeflate-tools
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Clone OpenWrt
-        run: |
-          git clone --depth 1 https://github.com/openwrt/openwrt.git ~/openwrt
-
-      - name: Update feeds
-        run: |
-          cd ~/openwrt
-
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-
-      - name: Copy package
-        run: |
-          mkdir -p ~/openwrt/package/local/gigaset-info-center
-          cp -r ./* ~/openwrt/package/local/gigaset-info-center/
-
-      - name: Copy package to OpenWrt
-        run: |
-          mkdir -p ~/openwrt/package/feeds/local/gigaset-info-center
-          cp -r $GITHUB_WORKSPACE/* ~/openwrt/package/feeds/local/gigaset-info-center/
-
-      - name: Add local feed configuration
-        run: |
-          echo "src/file file:///home/runner/openwrt/package/feeds/local" >> ~/openwrt/include/feeds.conf
-
-      - name: Configure OpenWrt
-        run: |
-          cd ~/openwrt
-
-          # Update feeds and install our package
-          ./scripts/feeds update
-          ./scripts/feeds install -a
-
-          # Enable the package in config
-          echo "CONFIG_PACKAGE_gigaset-info-center=y" >> .config
-
-          make defconfig
-
-      - name: Build package
-        run: |
-          cd ~/openwrt
-
-          make package/gigaset-info-center/compile V=s -j1
-
-      - name: Collect IPK artifacts
-        run: |
-          mkdir -p artifacts
-
-          find ~/openwrt/bin/packages -name '*.ipk' -exec cp {} artifacts/ \;
-
-      - name: Upload IPK artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: openwrt-ipk
-          path: artifacts/*.ipk
