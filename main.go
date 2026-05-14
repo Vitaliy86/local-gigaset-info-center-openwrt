@@ -210,9 +210,13 @@ func fetchWeather(cfg Config) ([]DayData, error) {
 		url.QueryEscape(cfg.Lang),
 	)
 
-	resp, err := http.Get(apiURL) //nolint:noctx
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(apiURL) //nolint:noctx
 	if err != nil {
-		return nil, fmt.Errorf("OWM request: %w", err)
+		return nil, fmt.Errorf("OWM request (timeout/network): %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -356,6 +360,46 @@ func handleWeather(cfg Config) http.HandlerFunc {
 		}
 
 		io.WriteString(w, "</body>\n</html>")
+	}
+}
+
+// handleIndex serves a simple landing page listing endpoints and service info.
+func handleIndex(cfg Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<head>
+    <title>Gigaset Info Center</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; color: #333; }
+        h1 { color: #0056b3; }
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        a { text-decoration: none; color: #007bff; font-weight: bold; }
+        .info { background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 20px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>Gigaset Info Center</h1>
+    <p>Service version: %s</p>
+    <ul>
+        <li><a href="/info/menu.jsp">Weather (XHTML-GP)</a></li>
+        <li><a href="/info/request.do">Weather (Alternate)</a></li>
+        <li><a href="/proxy/image.do?data=https://openweathermap.org/img/wn/10d.png">Icon Proxy Test</a></li>
+    </ul>
+    <div class="info">
+        <strong>Service Info:</strong><br>
+        City: %s<br>
+        Listen: %s
+    </div>
+</body>
+</html>`, version, cfg.City, cfg.Listen)
 	}
 }
 
@@ -503,6 +547,7 @@ Examples:
 	}
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", handleIndex(cfg))
 	mux.HandleFunc("/info/menu.jsp", handleWeather(cfg))
 	mux.HandleFunc("/info/request.do", handleWeather(cfg))
 	mux.HandleFunc("/proxy/image.do", handleProxy(cfg))
