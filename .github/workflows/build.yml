@@ -98,7 +98,7 @@ jobs:
             file \
             wget \
             curl \
-            libdeflate-tools
+            libdeflate
 
       - name: Init APK database
         run: |
